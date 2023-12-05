@@ -7,20 +7,19 @@ import datetime
 import sys
 import logging
 
-
-
 logfilename = "log/pg-stat-profiler.log"
+keystorefile = u'sec/pg-stat-profiler.keystr'
 
 logging.basicConfig(filename = logfilename, level=logging.WARNING,
                     format='%(asctime)s[%(funcName)-5s] (%(processName)-10s) %(message)s',
                     )
 logging.warning("Startup : Postgres Stat Profiler")
 api_secret = os.getenv(u'PG_STAT_PROFILER_SECRET')
-if api_secret:
-      keystorefile = u'log/pg-stat-profiler-keystore'
+if api_secret:  
       keystore = api_keystore(api_secret,keystorefile)
 else:
       logging.warning("Exception Shutdown : Postgres Stat Profiler: No secret supplied")
+      sys.exit()
 
 
 app = Flask(__name__)
@@ -64,7 +63,7 @@ def not_supported(error):
     return make_response(jsonify({'error': 'Not Supported'}), 503)
 
 @app.route('/_api/v1.0')
-@requires_secret_auth
+@requires_api_auth
 def publish_welcome():
    try: 
     return jsonify({'postgres-stat-profiler':'welcome','version': '1.0.0'}) 
@@ -86,7 +85,7 @@ def show_apikeys():
 if __name__ == '__main__':
  try:
       app.debug = True
-      app.run()
+      app.run(ssl_context='adhoc')
  except Exception as e:
   logging.warning("Exception Shutdown : Postgres Stat Profiler: Error ["+str(e)+"]")
 
