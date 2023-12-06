@@ -19,7 +19,10 @@ class api_keystore:
        cf = open(self.keyfilename,'r')
        cflines = cf.readlines()
        for cfline in cflines:
-          result = self.fernet.decrypt(cfline.encode(u"utf-8")).decode("utf-8") 
+          try:
+             result = self.fernet.decrypt(cfline.encode(u"utf-8")).decode("utf-8") 
+          except:
+             result = False
           if result:
              thiskey = self.fernet.encrypt(result.encode('utf-8'))
              self.apikeys.append(thiskey)
