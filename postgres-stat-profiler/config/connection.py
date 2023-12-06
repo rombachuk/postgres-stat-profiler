@@ -30,3 +30,14 @@ class connection:
           return details
         except:
           return u'{ "error" : "connection details missing" }'
+        
+    def update(self,data):
+       if 'host' in data:
+          self.host = data['host']
+       if 'port' in data:
+          self.port = data['port']
+       if 'cacert' in data:
+          self.cacert = data['cacert']
+       if 'credentials' in data:
+          self.credentials = data['credentials']
+        

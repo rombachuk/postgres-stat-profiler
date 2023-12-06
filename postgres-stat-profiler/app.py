@@ -7,7 +7,7 @@ from copy import deepcopy
 from functools import wraps
 from api.api_auth import api_auth
 from api.api_keystore import api_keystore
-from config.profileset import profileset
+from config.profilestore import profilestore
 
 os.environ['PG_STAT_PROFILER_SECRET'] = '4958034759875304895734897543875403985740987540785078438859074'
 os.environ['PG_STAT_PROFILER_BASE'] = '/Users/y7kwh/Documents/GitHub/postgres-stat-profiler/postgres-stat-profiler'
@@ -23,7 +23,7 @@ logging.warning("Startup : Postgres Stat Profiler")
 api_secret = os.getenv(u'PG_STAT_PROFILER_SECRET')
 if api_secret:  
       keystore = api_keystore(api_secret,keystorefile)
-      profiles = profileset(api_secret,profilesfile)
+      profilestore = profilestore(api_secret,profilesfile)
 else:
       logging.warning("Exception Shutdown : Postgres Stat Profiler: No secret supplied")
       sys.exit()
@@ -87,15 +87,29 @@ def show_apikeys():
     return make_response(jsonify({'apikeys': '{}'.format(str(keys))}),200)
    except Exception as e:
       return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
+   
+@app.route('/_api/v1.0/profiles',methods=['GET'])
+@requires_api_auth
+def read_profiles():
+   try: 
+       if len(profilestore.getProfiles()) > 0:
+          details = []
+          for p in profilestore.getProfiles():
+            details.append(profilestore.getApiDetails(p))
+          return jsonify(details,200)
+       else:
+         return make_response(jsonify({'error': 'Not Found'}), 404)
+   except Exception as e:
+      return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
 
 @app.route('/_api/v1.0/profiles/<name>',methods=['GET'])
 @requires_api_auth
 def read_profile(name):
    try: 
-    if profiles.hasName(name):
-       result = profiles.getApiDetails(name)
+    if profilestore.hasName(name):
+       result = profilestore.getApiDetails(name)
        if 'name' in result:
-          return jsonify(profiles.getApiDetails(name),200)
+          return jsonify(profilestore.getApiDetails(name),200)
     return make_response(jsonify({'error': 'Not Found'}), 404)
    except Exception as e:
       return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
@@ -104,7 +118,7 @@ def read_profile(name):
 @requires_api_auth
 def create_profile(name):
    try:
-    if profiles.addProfileApi(name,request):
+    if profilestore.addProfileApi(name,request):
         return jsonify({'result':'ok'},200) 
     else:
         return jsonify({'result':'error'},200) 
@@ -115,7 +129,10 @@ def create_profile(name):
 @requires_api_auth
 def update_profile(name):
    try: 
-    return jsonify({'postgres-stat-profiler':'welcome','version': '1.0.0'}) 
+    if profilestore.updateProfileApi(name,request):
+        return jsonify({'result':'ok'},200) 
+    else:
+        return jsonify({'result':'error'},200) 
    except Exception as e:
       return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
 
@@ -123,7 +140,10 @@ def update_profile(name):
 @requires_api_auth
 def delete_profile(name):
    try: 
-    return jsonify({'postgres-stat-profiler':'welcome','version': '1.0.0'}) 
+    if profilestore.deleteProfileApi(name):
+        return jsonify({'result':'ok'},200) 
+    else:
+        return jsonify({'result':'error'},200) 
    except Exception as e:
       return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
 

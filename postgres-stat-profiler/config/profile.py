@@ -6,7 +6,7 @@ from config.connection import connection
 class profile:
  
   def __init__(self,data):
-     self.status = 'stopped'
+     self.status = 'disabled'
      self.valid = False
      if 'name' in data:
         self.name = data['name']
@@ -37,6 +37,21 @@ class profile:
              self.reportconnection.getApiDetails()))
      except Exception as e:
         logging.warning('pg-stat-profiler : unexpected profile-getApiDetails error : [{}]'.format(str(e)))
+
+  def update(self,data):
+     try:
+           if data:
+             if 'status' in data and ((data['status'] == u'disabled') or (data['status'] == u'enabled')):
+               self.status = data['status']
+             if 'report_connection' in data:
+               self.reportconnection.update(data['report_connection'])
+             if 'monitored_connection' in data:
+               self.monitoredconnection.update(data['monitored_connection'])  
+           return True        
+     except Exception as e:
+        logging.warning('pg-stat-profiler : unexpected profile-update : [{}]'.format(str(e)))
+        self.valid = False
+        return False
      
   def _setConnections(self,data):
      try:

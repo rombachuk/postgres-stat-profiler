@@ -5,7 +5,7 @@ import logging
 from cryptography.fernet import Fernet
 from config.profile import profile
 
-class profileset:
+class profilestore:
 
     def __init__(self,secret,profilesfilename):
         self.profiles = {}
@@ -15,12 +15,18 @@ class profileset:
         self.fernet = Fernet(fernetkey)
         self.profilesfilename = profilesfilename
         if os.path.isfile(self.profilesfilename):
-           self.valid = self._fetchProfiles()
+           self.valid = self._fetchFromProfilesFile()
 
     def hasName(self,name):
         if name in self.profiles:
             return True
         return False
+    
+
+    # read/accessor methods
+    
+    def getProfiles(self):
+        return self.profiles
     
     def _getAllDetails(self,name):
         if name in self.profiles:
@@ -28,12 +34,14 @@ class profileset:
         else:
             return '"error" : Not found"'
         
+    # does not return credentials property
     def getApiDetails(self,name):
         if name in self.profiles:
             return self.profiles[name].getApiDetails()
         else:
             return '"error" : Not found"'
         
+    # add methods - available via POST
     def addProfileApi(self,name,request):
         status = False
         try:
@@ -50,14 +58,55 @@ class profileset:
     def addProfile(self,name,data):
         status = False
         try:
-            self.profiles[name] = profile(data)
-            if name in self.profiles and self.profiles[name].getValid():
+            if name not in self.profiles:
+               self.profiles[name] = profile(data)
+               if name in self.profiles and self.profiles[name].getValid():
                      status = self._updateProfilesFile()
             return status
         except Exception as e:
             logging.warn('pg-stat-profiler : unexpected profile-add error : [{}]'.format(str(e)))
             return False
         
+    # update methods - available via PUT
+    def updateProfileApi(self,name,request):
+        status = False
+        try:
+           if name in self.profiles:
+              if request.headers.get('Content-Type'):
+                  data = request.get_json()
+                  status = self.updateProfile(name,data)
+           return status
+        except Exception as e:
+           logging.warn('pg-stat-profiler : unexpected profile-apiadd error : [{}]'.format(str(e)))
+           return False
+        
+    def updateProfile(self,name,data):
+        status = False
+        try:
+            if name in self.profiles:
+               self.profiles[name].update(data)
+               if name in self.profiles and self.profiles[name].getValid():
+                     status = self._updateProfilesFile()
+            return status
+        except Exception as e:
+            logging.warn('pg-stat-profiler : unexpected profile-add error : [{}]'.format(str(e)))
+            return False
+        
+    # delete methods
+
+    def deleteProfileApi(self,name):
+        status = False
+        try:
+            if name in self.profiles:
+               del self.profiles[name]
+               status = self._updateProfilesFile()
+            return status
+        except Exception as e:
+            logging.warn('pg-stat-profiler : unexpected profile-delete error : [{}]'.format(str(e)))
+            return False
+        
+    # security file persistence methods
+    # idempotent method to rewrite the profiles to persistent file, encrypted by secret
     def _updateProfilesFile(self):
        status = False
        try: 
@@ -73,7 +122,7 @@ class profileset:
           status = False
        return status
 
-    def _fetchProfiles(self):
+    def _fetchFromProfilesFile(self):
        status = False
        cf = open(self.profilesfilename,'r')
        cflines = cf.readlines()
