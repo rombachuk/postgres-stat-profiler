@@ -1,7 +1,9 @@
 venv/
-log/
-sec/
-samples/
-cert/
 __pycache__
+*.json
+*.log
+*.pem
+*.crt
+*.keystr
+*.prof
 .vscode

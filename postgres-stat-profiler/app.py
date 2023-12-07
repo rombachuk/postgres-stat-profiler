@@ -11,9 +11,10 @@ from config.profilestore import profilestore
 
 os.environ['PG_STAT_PROFILER_SECRET'] = '4958034759875304895734897543875403985740987540785078438859074'
 os.environ['PG_STAT_PROFILER_BASE'] = '/Users/y7kwh/Documents/GitHub/postgres-stat-profiler/postgres-stat-profiler'
-logfilename = os.path.join(os.getenv(u'PG_STAT_PROFILER_BASE'),u"resources/log/pg-stat-profiler.log")
-keystorefile = os.path.join(os.getenv(u'PG_STAT_PROFILER_BASE'),u'resources/sec/pg-stat-profiler.keystr')
-profilesfile = os.path.join(os.getenv(u'PG_STAT_PROFILER_BASE'),u'resources/sec/pg-stat-profiler.prof')
+os.environ['PG_STAT_PROFILER_LOGBASE'] = '/Users/y7kwh/Documents/GitHub/postgres-stat-profiler/postgres-stat-profiler/resources/log'
+logfilename = os.path.join(os.getenv(u'PG_STAT_PROFILER_LOGBASE'),u"pg-stat-profiler.log")
+keystorefile = os.path.join(os.getenv(u'PG_STAT_PROFILER_BASE'),u'resources/sec/.pg-stat-profiler.keystr')
+profilesfile = os.path.join(os.getenv(u'PG_STAT_PROFILER_BASE'),u'resources/sec/.pg-stat-profiler.prof')
 
 logging.basicConfig(filename = logfilename, level=logging.WARNING,
                     format='%(asctime)s[%(funcName)-5s] (%(processName)-10s) %(message)s',

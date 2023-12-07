@@ -1,3 +1,4 @@
+import base64 
 
 class connection:
 
@@ -11,6 +12,7 @@ class connection:
             self.port = data['port']
             self.cacert = data['cacert']
             self.credentials = data['credentials']
+            self._setUsernamePassword()
             self.valid = True
 
     def getValid(self):
@@ -40,4 +42,12 @@ class connection:
           self.cacert = data['cacert']
        if 'credentials' in data:
           self.credentials = data['credentials']
+          self._setUsernamePassword()
+
+    def _setUsernamePassword(self):
+          src_credbytes = base64.urlsafe_b64decode(self.credentials)          
+          src_credparts = src_credbytes.decode(u'utf-8').split(':')
+          if len(src_credparts) == 2:
+                self.username = src_credparts[0]
+                self.password = src_credparts[1]
         
