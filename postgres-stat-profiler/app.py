@@ -23,7 +23,7 @@ profilesfile = os.path.join(os.getenv(u'PG_STAT_PROFILER_BASE'),u'resources/sec/
 logging.basicConfig(filename = logfilename, level=logging.WARNING,
                     format='%(asctime)s[%(funcName)-5s] (%(processName)-10s) %(message)s',
                     )
-logging.warning("Startup : Postgres Stat Profiler")
+logging.warning("Startup : postgres-stat-profiler")
 
 # store (state) initialisation
 api_secret = os.getenv(u'PG_STAT_PROFILER_SECRET')
@@ -32,7 +32,7 @@ if api_secret:
       profile_store = profilestore(api_secret,profilesfile)
       profile_supervisor = profilesupervisor(profilesfile)
 else:
-      logging.warning("Exception Shutdown : Postgres Stat Profiler: No secret supplied")
+      logging.warning("Exception Shutdown : postgres-stat-profiler: No secret supplied")
       sys.exit()
 
 
@@ -183,7 +183,7 @@ if __name__ == '__main__':
       app.debug = False
       app.run(ssl_context='adhoc')
  except Exception as e:
-  logging.warning("Exception Shutdown : Postgres Stat Profiler: Error ["+str(e)+"]")
+  logging.warning("Exception Shutdown : postgres-stat-profiler: Error ["+str(e)+"]")
   sys.exit()
 
 # Helper functions
