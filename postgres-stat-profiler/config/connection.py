@@ -50,4 +50,7 @@ class connection:
           if len(src_credparts) == 2:
                 self.username = src_credparts[0]
                 self.password = src_credparts[1]
+
+    def __str__(self):
+        return str(self.__dict__)
         

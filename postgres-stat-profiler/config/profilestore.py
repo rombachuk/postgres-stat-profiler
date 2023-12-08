@@ -102,7 +102,7 @@ class profilestore:
                status = self._updateProfilesFile()
             return status
         except Exception as e:
-            logging.warn('pg-stat-profiler : unexpected profile-delete error : [{}]'.format(str(e)))
+            logging.warning('pg-stat-profiler : unexpected profile-delete error : [{}]'.format(str(e)))
             return False
         
     # security file persistence methods
@@ -144,6 +144,9 @@ class profilestore:
              status = False
              break
        return status
+    
+    def __str__(self):
+        return str(self.__dict__)
 
 
 

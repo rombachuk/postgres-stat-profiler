@@ -61,6 +61,9 @@ class api_keystore:
              return True
        cf.close()
        return False
+    
+    def __str__(self):
+        return str(self.__dict__)
  
             
            
