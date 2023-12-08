@@ -4,7 +4,6 @@ import logging
 from flask import Flask, abort, jsonify, make_response, request, Response
 from flask_apscheduler import APScheduler
 import multiprocessing
-from copy import deepcopy
 from functools import wraps
 from api.api_auth import api_auth
 from api.api_keystore import api_keystore
@@ -29,8 +28,8 @@ logging.warning("Startup : postgres-stat-profiler")
 api_secret = os.getenv(u'PG_STAT_PROFILER_SECRET')
 if api_secret:  
       keystore = api_keystore(api_secret,keystorefile)
-      profile_store = profilestore(api_secret,profilesfile)
-      profile_supervisor = profilesupervisor(profilesfile)
+      profile_supervisor = profilesupervisor(api_secret,profilesfile)
+      profile_store = profile_supervisor.getProfilestore()
 else:
       logging.warning("Exception Shutdown : postgres-stat-profiler: No secret supplied")
       sys.exit()
@@ -38,15 +37,13 @@ else:
 
 # profile supervisor control functions
 
-def run_supervisorjob():
-   profile_supervisor.run()
-
 def check_supervisorjob():
   global supervisorjob
   global profile_supervisor
   try:
    if not supervisorjob.is_alive():
-      supervisorjob = multiprocessing.Process(target=run_supervisorjob)
+      supervisorjob.join()
+      supervisorjob = multiprocessing.Process(target=profile_supervisor.run)
       supervisorjob.start()
       logging.warning("Postgres Stat Profiler: supervisor restarted with processid :[{}]".format(str(supervisorjob.pid)))
   except Exception as e:
@@ -120,6 +117,7 @@ def show_apikeys():
 @requires_api_auth
 def read_profiles():
    try: 
+       profile_store = profile_supervisor.getProfilestore()
        if len(profile_store.getProfiles()) > 0:
           details = []
           for p in profile_store.getProfiles():
@@ -134,10 +132,11 @@ def read_profiles():
 @requires_api_auth
 def read_profile(name):
    try: 
+    profile_store = profile_supervisor.getProfilestore()
     if profile_store.hasName(name):
        result = profile_store.getApiDetails(name)
        if 'name' in result:
-          return jsonify(profile_store.getApiDetails(name),200)
+          return jsonify(result,200)
     return make_response(jsonify({'error': 'Not Found'}), 404)
    except Exception as e:
       return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
@@ -177,7 +176,7 @@ def delete_profile(name):
 
 if __name__ == '__main__':
  try:
-      supervisorjob = multiprocessing.Process(target=run_supervisorjob)
+      supervisorjob = multiprocessing.Process(target=profile_supervisor.run)
       supervisorjob.start()
       scheduler.add_job(id=u'periodic_supervisorcheck',func=check_supervisorjob, trigger='interval', seconds=10)      
       app.debug = False

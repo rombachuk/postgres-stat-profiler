@@ -3,44 +3,49 @@ import json
 import time
 from flask import request
 from config.connection import connection
+from database.reportDatabase import reportDatabase
+from database.monitoredDatabase import monitoredDatabase
 
 class profile:
- 
+  
   def __init__(self,data):
      self.valid = False
      if 'name' in data:
         self.name = data['name']
-        if self._setConnections(data) and self._setStatus(data):
+        if self._setStatuses(data) and self._setConnections(data):
            self.valid = True
  
   def getName(self):
-     return self.name
+      return self.name
   
   def getStatus(self):
-     return self.status
+      return self.status
   
+  def getMonitoredDBstatus(self):
+      return self.monitordbstatus
+     
+  def getReportDBstatus(self): 
+      return self.reportdbstatus
+     
   def getValid(self):
      return self.valid
   
   def getAllDetails(self):
-     try:
-        return ('{{ "name" : "{}", "status" : "{}", "monitored_connection" : {{{}}}, "report_connection" : {{{}}}}}'.\
-             format(self.name, str(self.status),\
-             self.monitoredconnection.getAllDetails(), \
-             self.reportconnection.getAllDetails()))
-     except Exception as e:
-        logging.warning('pg-stat-profiler : unexpected profile-getApiDetails error : [{}]'.format(str(e)))
-     
+     return self._getDetails(self.monitored_connection.getAllDetails(),self.report_connection.getAllDetails())
   
   # credentials never exposed over GET from api
   def getApiDetails(self):
+     return self._getDetails(self.monitored_connection.getApiDetails(),self.report_connection.getApiDetails())
+
+  def _getDetails(self,monitoredconndetails,reportconndetails):
      try: 
-        return ("{{ 'name' : '{}', 'status' : '{}', 'monitored_connection' : {{{}}}, 'report_connection' : {{{}}} }}".\
+        return "{{ 'name' : '{}', 'status': '{}', 'monitored_connection' : {{{}}}, 'monitordbstatus' : '{}', 'report_connection' : {{{}}}, 'reportdbstatus' : '{}' }}".\
              format(self.name, str(self.status),\
-             self.monitoredconnection.getApiDetails(), \
-             self.reportconnection.getApiDetails()))
+             monitoredconndetails, self.getMonitoredDBstatus(),\
+             reportconndetails, self.getReportDBstatus())
      except Exception as e:
-        logging.warning('pg-stat-profiler : unexpected profile-getApiDetails error : [{}]'.format(str(e)))
+        logging.warning('pg-stat-profiler : unexpected profile-getDetails error : [{}]'.format(str(e)))
+     
 
   def update(self,data):
      try:
@@ -48,9 +53,9 @@ class profile:
              if 'status' in data and ((data['status'] == u'disabled') or (data['status'] == u'enabled')):
                self.status = data['status']
              if 'report_connection' in data:
-               self.reportconnection.update(data['report_connection'])
+               self.report_connection.update(data['report_connection'])
              if 'monitored_connection' in data:
-               self.monitoredconnection.update(data['monitored_connection'])  
+               self.monitored_connection.update(data['monitored_connection'])  
              self.valid = True
            return True        
      except Exception as e:
@@ -61,8 +66,11 @@ class profile:
   def run(self):
        try: 
         while True:
-           logging.warning('pg-stat-profiler : profile [{}] running tick...'.format(self.name))
-           time.sleep(1.0)
+           repdb = reportDatabase(self.report_connection.getConnectionString())
+           self.reportdbstatus = repdb.getStatus()
+           mondb = monitoredDatabase(self.monitored_connection.getConnectionString())
+           self.monitordbstatus = mondb.getStatus()
+           time.sleep(10.0)
            
        except Exception as e:
         logging.warning('pg-stat-profiler : unexpected profile-run error : [{}]'.format(str(e)))
@@ -70,25 +78,28 @@ class profile:
   def _setConnections(self,data):
      try:
            if data and 'report_connection' in data and 'monitored_connection' in data:
-              self.reportconnection = connection(data['report_connection'])
-              if self.reportconnection.getValid():
-                 self.monitoredconnection = connection(data['monitored_connection'])
-                 if self.monitoredconnection.getValid():
+              self.report_connection = connection(data['report_connection'])
+              self.monitored_connection = connection(data['monitored_connection'])
+              if self.report_connection.getValid() and self.monitored_connection.getValid():
                     return True
            return False
      except Exception as e:
         logging.warning('pg-stat-profiler : unexpected profile-setConnections error : [{}]'.format(str(e)))
         return False
 
-  def _setStatus(self,data):
+  def _setStatuses(self,data):
      try:
            if data and 'status' in data :
               self.status = data['status']
-           else:
+           if not hasattr(self,'status'):
               self.status = 'disabled'
+           if not hasattr(self,'monitordbstatus'):
+              self.monitordbstatus = 'unknown'
+           if not hasattr(self,'reportdbstatus'):
+              self.reportdbstatus = 'unknown'
            return True
      except Exception as e:
-        logging.warning('pg-stat-profiler : unexpected profile-setConnections error : [{}]'.format(str(e)))
+        logging.warning('pg-stat-profiler : unexpected profile-setStatus error : [{}]'.format(str(e)))
         return False
 
   def __str__(self):

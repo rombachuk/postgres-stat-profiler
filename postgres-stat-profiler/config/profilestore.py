@@ -112,8 +112,7 @@ class profilestore:
        try: 
           cf = open(self.profilesfilename,'w')
           for profile in self.profiles:
-             result = json.dumps(self.profiles[profile].getAllDetails())
-             profilestring = json.dumps(result)
+             profilestring = json.dumps(self.profiles[profile].getAllDetails())
              encryptedstring = self.fernet.encrypt(profilestring.encode('utf-8'))
              cf.write(encryptedstring.decode('utf-8') + '\n')
           cf.close()
@@ -131,8 +130,8 @@ class profilestore:
              result = self.fernet.decrypt(cfline.encode(u"utf-8")).decode("utf-8")
              if result:
                 try:
-                   # required to remove \\ characters popped by the fernet url encryot-decrypt process
-                   thisprofile = json.loads(json.loads(json.loads(result)))
+                   # required to convert \' to " characters, required by json.loads
+                   thisprofile = json.loads(json.loads(result).replace("'",'"'))
                    if thisprofile and 'name' in thisprofile:
                        status = self.addProfile(thisprofile['name'],thisprofile)
                 except Exception as e:

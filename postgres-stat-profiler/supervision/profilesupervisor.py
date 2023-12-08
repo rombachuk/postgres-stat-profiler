@@ -6,17 +6,22 @@ from config.profilestore import profilestore
 
 class profilesupervisor():
 
-    def __init__(self,profilesfile):
+    def __init__(self,api_secret,profilesfile):
         self.profilesfile = profilesfile
+        self.api_secret = api_secret
         self.profilejobs = {}
+        self.profilestore = profilestore(self.api_secret,self.profilesfile)
+
+    def getProfilestore(self):
+        return self.profilestore
 
     def run(self):
         try:
          while True:
-            api_secret = os.getenv(u'PG_STAT_PROFILER_SECRET')
-            current_profilestore = profilestore(api_secret,self.profilesfile)
+            # refresh profiles from file (persistent store) each cycle
+            self.profilestore = profilestore(self.api_secret,self.profilesfile)
             # use list() to avoid runtime error when deleting a object property during iteration
-            for pname,p in list(current_profilestore.getProfiles().items()):
+            for pname,p in list(self.profilestore.getProfiles().items()):
                 #logging.warning('pg-stat-profiler : Reviewing profile execution : [{}] [{}]'.format(pname,p.getStatus()))
                 # stop existing process if disabled via api
                 if pname in self.profilejobs and p.getStatus() == 'disabled':
@@ -35,7 +40,7 @@ class profilesupervisor():
             for jname in list(self.profilejobs.keys()):
                 # stop existing process if deleted via api
                 #logging.warning('pg-stat-profiler : Reviewing profile execution : [{}]'.format(jname))
-                if jname not in current_profilestore.getProfiles():
+                if jname not in self.profilestore.getProfiles():
                     logging.warning('pg-stat-profiler : Disabling profile execution : [{}]'.format(jname))
                     self.profilejobs[jname].terminate()
                     self.profilejobs[jname].join()
