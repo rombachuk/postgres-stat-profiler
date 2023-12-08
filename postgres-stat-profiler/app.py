@@ -28,8 +28,8 @@ logging.warning("Startup : postgres-stat-profiler")
 api_secret = os.getenv(u'PG_STAT_PROFILER_SECRET')
 if api_secret:  
       keystore = api_keystore(api_secret,keystorefile)
+      profile_store = profilestore(api_secret,profilesfile)
       profile_supervisor = profilesupervisor(api_secret,profilesfile)
-      profile_store = profile_supervisor.getProfilestore()
 else:
       logging.warning("Exception Shutdown : postgres-stat-profiler: No secret supplied")
       sys.exit()
@@ -117,7 +117,8 @@ def show_apikeys():
 @requires_api_auth
 def read_profiles():
    try: 
-       profile_store = profile_supervisor.getProfilestore()
+       # refresh store to collect execution info
+       profile_store = profilestore(api_secret,profilesfile)
        if len(profile_store.getProfiles()) > 0:
           details = []
           for p in profile_store.getProfiles():
@@ -132,7 +133,8 @@ def read_profiles():
 @requires_api_auth
 def read_profile(name):
    try: 
-    profile_store = profile_supervisor.getProfilestore()
+    # refresh store to collect execution info
+    profile_store = profilestore(api_secret,profilesfile)
     if profile_store.hasName(name):
        result = profile_store.getApiDetails(name)
        if 'name' in result:
