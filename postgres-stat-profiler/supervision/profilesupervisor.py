@@ -15,6 +15,7 @@ class profilesupervisor():
          while True:
             api_secret = os.getenv(u'PG_STAT_PROFILER_SECRET')
             current_profilestore = profilestore(api_secret,self.profilesfile)
+            # use list() to avoid runtime error when deleting a object property during iteration
             for pname,p in list(current_profilestore.getProfiles().items()):
                 #logging.warning('pg-stat-profiler : Reviewing profile execution : [{}] [{}]'.format(pname,p.getStatus()))
                 # stop existing process if disabled via api
