@@ -54,8 +54,12 @@ class profile:
                self.status = data['status']
              if 'report_connection' in data:
                self.report_connection.update(data['report_connection'])
+             if 'reportdbstatus'in data:
+               self.reportdbstatus = data['reportdbstatus']
              if 'monitored_connection' in data:
                self.monitored_connection.update(data['monitored_connection'])  
+             if 'monitordbstatus'in data:
+               self.monitordbstatus = data['monitordbstatus']
              self.valid = True
            return True        
      except Exception as e:
@@ -63,13 +67,15 @@ class profile:
         self.valid = False
         return False
      
-  def run(self):
+  def run(self, profilesqueue):
        try: 
         while True:
            repdb = reportDatabase(self.report_connection.getConnectionString())
            self.reportdbstatus = repdb.getStatus()
            mondb = monitoredDatabase(self.monitored_connection.getConnectionString())
            self.monitordbstatus = mondb.getStatus()
+           result = {"name": self.name, "reportdbstatus": self.reportdbstatus, "monitordbstatus": self.monitordbstatus }
+           profilesqueue.put(result)
            time.sleep(10.0)
            
        except Exception as e:

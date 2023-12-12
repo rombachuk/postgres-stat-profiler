@@ -35,19 +35,29 @@ else:
       sys.exit()
 
 
-# profile supervisor control functions
+# profile supervisor control function: runs periodically in parallel with Flask
 
 def check_supervisorjob():
   global supervisorjob
+  global profilesqueue
   global profile_supervisor
+  global profile_store
   try:
+   # 
    if not supervisorjob.is_alive():
       supervisorjob.join()
-      supervisorjob = multiprocessing.Process(target=profile_supervisor.run)
+      supervisorjob = multiprocessing.Process(target=profile_supervisor.run,args=(profilesqueue,))
       supervisorjob.start()
       logging.warning("Postgres Stat Profiler: supervisor restarted with processid :[{}]".format(str(supervisorjob.pid)))
+   else:
+     #  handle profile state changes passed from individual profiles up via supervisor
+     #  ensures that only this main thread updates the persistent profilesfilestore
+     while not profilesqueue.empty(): 
+        qdata = profilesqueue.get()
+        if 'name' in qdata:
+           profile_store.updateProfile(qdata['name'],qdata)
   except Exception as e:
-      logging.warning("Unexpected Exception : Postgres Stat Profiler: Error restarting supervisor :[{}]".format(str(e)))
+      logging.warning("Unexpected Exception : Postgres Stat Profiler: Error checking supervisor :[{}]".format(str(e)))
 
 # main api Flask section
 
@@ -117,8 +127,6 @@ def show_apikeys():
 @requires_api_auth
 def read_profiles():
    try: 
-       # refresh store to collect execution info
-       profile_store = profilestore(api_secret,profilesfile)
        if len(profile_store.getProfiles()) > 0:
           details = []
           for p in profile_store.getProfiles():
@@ -133,8 +141,6 @@ def read_profiles():
 @requires_api_auth
 def read_profile(name):
    try: 
-    # refresh store to collect execution info
-    profile_store = profilestore(api_secret,profilesfile)
     if profile_store.hasName(name):
        result = profile_store.getApiDetails(name)
        if 'name' in result:
@@ -178,7 +184,8 @@ def delete_profile(name):
 
 if __name__ == '__main__':
  try:
-      supervisorjob = multiprocessing.Process(target=profile_supervisor.run)
+      profilesqueue = multiprocessing.Queue()
+      supervisorjob = multiprocessing.Process(target=profile_supervisor.run, args=(profilesqueue,))
       supervisorjob.start()
       scheduler.add_job(id=u'periodic_supervisorcheck',func=check_supervisorjob, trigger='interval', seconds=10)      
       app.debug = False
