@@ -70,10 +70,9 @@ class profile:
   def run(self, profilesqueue):
        try: 
         while True:
-           repdb = reportDatabase(self.report_connection.getConnectionString())
-           self.reportdbstatus = repdb.getStatus()
-           mondb = monitoredDatabase(self.monitored_connection.getConnectionString())
-           self.monitordbstatus = mondb.getStatus()
+           self.reportdbstatus = reportDatabase(self.report_connection.getConnectionString()).getStatus()
+           self.monitordbstatus = monitoredDatabase(self.monitored_connection.getConnectionString()).getStatus()
+           # pass result back via queue to grandparent main process - which updates the (persistent, encrypted) profilesfile
            result = {"name": self.name, "reportdbstatus": self.reportdbstatus, "monitordbstatus": self.monitordbstatus }
            profilesqueue.put(result)
            time.sleep(10.0)
