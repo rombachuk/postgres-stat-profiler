@@ -8,7 +8,7 @@ class api_keystore:
     def __init__(self,secret,keyfilename):
         self.apikeys = []
         self.keyfilename = keyfilename
-        secret_bytes = secret.encode(u"utf-8")
+        secret_bytes = secret.encode(u'utf-8')
         fernetkey = base64.urlsafe_b64encode(secret_bytes.ljust(32)[:32])
         self.fernet = Fernet(fernetkey)
         if not os.path.isfile(self.keyfilename) or not self.checkKeyfile():  
@@ -20,11 +20,11 @@ class api_keystore:
        cflines = cf.readlines()
        for cfline in cflines:
           try:
-             result = self.fernet.decrypt(cfline.encode(u"utf-8")).decode("utf-8") 
+             result = self.fernet.decrypt(cfline.encode(u'utf-8')).decode(u'utf-8') 
           except:
              result = False
           if result:
-             thiskey = self.fernet.encrypt(result.encode('utf-8'))
+             thiskey = self.fernet.encrypt(result.encode(u'utf-8'))
              self.apikeys.append(thiskey)
              status = True
           else:
