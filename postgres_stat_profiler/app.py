@@ -3,12 +3,12 @@ import os
 import logging
 from flask import Flask, abort, jsonify, make_response, request, Response
 from flask_apscheduler import APScheduler
-import multiprocessing
 from functools import wraps
-from api_auth.api_auth import api_auth
-from api_auth.api_keystore import api_keystore
-from config.profilestore import profilestore
-from supervision.profilesupervisor import profilesupervisor
+import multiprocessing
+from postgres_stat_profiler.api_auth.api_auth import api_auth
+from postgres_stat_profiler.api_auth.api_keystore import api_keystore
+from postgres_stat_profiler.config.profilestore import profilestore
+from postgres_stat_profiler.supervision.profilesupervisor import profilesupervisor
 
 # environment 
 os.environ['PG_STAT_PROFILER_SECRET'] = '4958034759875304895734897543875403985740987540785078438859074'
@@ -182,17 +182,20 @@ def delete_profile(name):
    except Exception as e:
       return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
 
-if __name__ == '__main__':
- try:
+def main():
+  try:
       profilesqueue = multiprocessing.Queue()
       supervisorjob = multiprocessing.Process(target=profile_supervisor.run, args=(profilesqueue,))
       supervisorjob.start()
       scheduler.add_job(id=u'periodic_supervisorcheck',func=check_supervisorjob, trigger='interval', seconds=10)      
       app.debug = False
       app.run(ssl_context='adhoc')
- except Exception as e:
-  logging.warning("Exception Shutdown : postgres-stat-profiler: Error ["+str(e)+"]")
-  sys.exit()
+  except Exception as e:
+      logging.warning("Exception Shutdown : postgres-stat-profiler: Error ["+str(e)+"]")
+      sys.exit()
+
+if __name__ == '__main__':
+   main()
 
 # Helper functions
 

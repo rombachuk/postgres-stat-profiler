@@ -2,9 +2,9 @@ import logging
 import json
 import time
 from flask import request
-from config.connection import connection
-from database.reportDatabase import reportDatabase
-from database.monitoredDatabase import monitoredDatabase
+from postgres_stat_profiler.config.connection import connection
+from postgres_stat_profiler.database.reportDatabase import reportDatabase
+from postgres_stat_profiler.database.monitoredDatabase import monitoredDatabase
 
 class profile:
   

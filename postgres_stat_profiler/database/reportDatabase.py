@@ -1,7 +1,7 @@
 import os
 import logging
 import psycopg
-from database.reportschema import reportschema
+from postgres_stat_profiler.database.reportschema import reportschema
 
 class reportDatabase():
 

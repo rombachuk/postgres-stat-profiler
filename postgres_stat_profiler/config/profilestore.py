@@ -3,7 +3,7 @@ import base64
 import json
 import logging
 from cryptography.fernet import Fernet
-from config.profile import profile
+from postgres_stat_profiler.config.profile import profile
 
 class profilestore:
 

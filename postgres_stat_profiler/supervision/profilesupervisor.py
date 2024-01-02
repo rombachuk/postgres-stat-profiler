@@ -2,7 +2,7 @@ import logging
 import time
 import os
 import multiprocessing
-from config.profilestore import profilestore
+from postgres_stat_profiler.config.profilestore import profilestore
 
 class profilesupervisor():
 
