@@ -12,8 +12,8 @@ from supervision.profilesupervisor import profilesupervisor
 
 # environment 
 os.environ['PG_STAT_PROFILER_SECRET'] = '4958034759875304895734897543875403985740987540785078438859074'
-os.environ['PG_STAT_PROFILER_BASE'] = '/Users/y7kwh/Documents/GitHub/postgres-stat-profiler/postgres_stat_profiler'
-os.environ['PG_STAT_PROFILER_LOGBASE'] = '/Users/y7kwh/Documents/GitHub/postgres-stat-profiler/postgres_stat_profiler/resources/log'
+os.environ['PG_STAT_PROFILER_BASE'] = '/Users/y7kwh/Documents/GitHub/postgres_stat_profiler/postgres_stat_profiler'
+os.environ['PG_STAT_PROFILER_LOGBASE'] = '/Users/y7kwh/Documents/GitHub/postgres_stat_profiler/postgres_stat_profiler/resources/log'
 logfilename = os.path.join(os.getenv(u'PG_STAT_PROFILER_LOGBASE'),u"pg-stat-profiler.log")
 keystorefile = os.path.join(os.getenv(u'PG_STAT_PROFILER_BASE'),u'resources/sec/.pg-stat-profiler.keystr')
 profilesfile = os.path.join(os.getenv(u'PG_STAT_PROFILER_BASE'),u'resources/sec/.pg-stat-profiler.prof')
