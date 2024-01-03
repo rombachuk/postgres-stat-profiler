@@ -16,6 +16,7 @@ class api_keystore:
 
     def checkKeyfile(self):
        status = False
+       self.apikeys = []
        cf = open(self.keyfilename,'r')
        cflines = cf.readlines()
        for cfline in cflines:
