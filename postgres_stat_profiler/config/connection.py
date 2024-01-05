@@ -1,49 +1,72 @@
 import base64 
 import os
 import logging
+from subprocess import check_output
 
 class connection:
 
     def __init__(self,data):
         self.valid = False
-        if 'host' in data and \
-        'port' in data and \
-        'cacert' in data and \
-        'credentials' in data and \
-        'database' in data:
-            self.host = data['host']
-            self.port = data['port']
-            self.cacert = data['cacert']
-            self.credentials = data['credentials']
-            self.database = data['database']
-            self._setUsernamePassword()
-            self.valid = True
+        try:
+           if 'host' in data and \
+           'port' in data and \
+           'credentials' in data and \
+           'database' in data:
+               self.host = data['host']
+               self.port = data['port']                 
+               self.credentials = data['credentials']
+               self.database = data['database']
+               self._setUsernamePassword()
+           if 'sslmode' in data:
+               self.sslmode = data['sslmode'] 
+               if 'cacert' in data:
+                   # allow for environment variables in the cacert location
+                   self.cacert = os.path.expandvars(data['cacert'])
+                   if os.path.isfile(self.cacert):
+                       self.valid = True 
+                   else:
+                       logging.warning(u'pg-stat-profiler : Missing cacert file')
+                       self.valid = False
+               else:
+                   self.cacert = 'notsupplied'
+                   if self.sslmode == 'verify-ca' or self.sslmode == 'verify-full':
+                       self.valid = False
+                       logging.warning(u'pg-stat-profiler : No cacert provided for verify connection')
+                   else:
+                       self.valid = True               
+           else:
+               self.sslmode = 'require'
+               self.cacert = 'notapplicable'
+               self.valid = True
+        except:
+               self.valid = False
 
     def getValid(self):
         return self.valid
     
     def getAllDetails(self):
         try: 
-          details = u"'database' : '{}', 'host': '{}', 'port' : {}, 'cacert' : '{}', 'credentials' : '{}'".format\
-            (self.database,self.host,self.port,self.cacert,self.credentials)
+          details = u"'database': '{}', 'host': '{}', 'port': {}, 'cacert': '{}', 'sslmode': '{}', 'credentials': '{}'".format\
+            (self.database,self.host,self.port,self.cacert,self.sslmode,self.credentials)
           return details
         except:
           return u'{ "error" : "connection details missing" }'
     
     def getApiDetails(self):
         try: 
-          details = u"'database' : '{}', 'host': '{}', 'port' : {}, 'cacert' : '{}'".format(self.database,self.host,self.port,self.cacert)
+          details = u"'database': '{}', 'host': '{}', 'port': {}, 'cacert': '{}' 'sslmode': '{}'".format\
+            (self.database,self.host,self.port,self.cacert, self.sslmode)
           return details
         except:
           return u'{ "error" : "connection details missing" }'
         
     def getConnectionString(self):
      try:
-         sslrootcert = os.path.join(os.getenv(u'PG_STAT_PROFILER_BASE'),u'resources/cert/{}'.format(self.cacert))
-         return ' dbname = {} host = {} port = {} user = {} password = {} sslmode = require sslrootcert = {}'.\
-            format(self.database,self.host,self.port,self.username,self.password, sslrootcert)
+         return ' dbname = {} host = {} port = {} user = {} password = {} sslmode = {} sslrootcert = {}'.\
+            format(self.database,self.host,self.port,self.username,self.password, self.sslmode, self.cacert)
      except Exception as e:
          logging.warning('pg-stat-profiler : unexpected profile-getConnectionString error : [{}]'.format(str(e)))
+         return u'{ "error" : "connection string configuration issue" }'
         
 
     def update(self,data):
@@ -53,6 +76,8 @@ class connection:
           self.host = data['host']
        if 'port' in data:
           self.port = data['port']
+       if 'sslmode' in data:
+          self.cacert = data['sslmode']
        if 'cacert' in data:
           self.cacert = data['cacert']
        if 'credentials' in data:

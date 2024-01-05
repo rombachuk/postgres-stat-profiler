@@ -1,6 +1,5 @@
 import logging
 import time
-import os
 import multiprocessing
 from postgres_stat_profiler.config.profilestore import profilestore
 

@@ -10,30 +10,33 @@ from postgres_stat_profiler.api_auth.api_keystore import api_keystore
 from postgres_stat_profiler.config.profilestore import profilestore
 from postgres_stat_profiler.supervision.profilesupervisor import profilesupervisor
 
-# environment 
-os.environ['PG_STAT_PROFILER_SECRET'] = '4958034759875304895734897543875403985740987540785078438859074'
-os.environ['PG_STAT_PROFILER_BASE'] = '/Users/y7kwh/Documents/GitHub/postgres_stat_profiler/postgres_stat_profiler'
-os.environ['PG_STAT_PROFILER_LOGBASE'] = '/Users/y7kwh/Documents/GitHub/postgres_stat_profiler/postgres_stat_profiler/resources/log'
-logfilename = os.path.join(os.getenv(u'PG_STAT_PROFILER_LOGBASE'),u"pg-stat-profiler.log")
-keystorefile = os.path.join(os.getenv(u'PG_STAT_PROFILER_BASE'),u'resources/sec/.pg-stat-profiler.keystr')
-profilesfile = os.path.join(os.getenv(u'PG_STAT_PROFILER_BASE'),u'resources/sec/.pg-stat-profiler.prof')
+# environment
 
-# logging
-logging.basicConfig(filename = logfilename, level=logging.WARNING,
-                    format='%(asctime)s[%(funcName)-5s] (%(processName)-10s) %(message)s',
-                    )
-logging.warning("Startup : postgres-stat-profiler")
+installbase = os.path.expandvars(os.getenv(u'PG_STAT_PROFILER_BASE'))
+if not installbase:
+   print('pg-stat-profiler: Failed to find environment variable PG_STAT_PROFILER_BASE, using cwd')
+   installbase = os.getcwd()
+secbase = os.path.join(installbase,u'postgres_stat_profiler/resources/sec')
+if not os.path.isdir(secbase):
+   print('pg-stat-profiler: Failed to find security directory, exiting...')
+   print('pg-stat-profiler: Check [Invalid Install base={}]'.format(str(installbase)))
+   print('pg-stat-profiler: Please supply correct environment variable PG_STAT_PROFILER_BASE'.format(str(installbase)))
+   sys.exit()
 
-# store (state) initialisation
+logbase = os.path.expandvars(os.getenv(u'PG_STAT_PROFILER_LOGBASE'))
+if not logbase:
+   print('pg-stat-profiler: Failed to find environment variable PG_STAT_PROFILER_LOGBASE, using cwd')
+   logbase = os.getcwd()
+if not os.path.isdir(logbase):
+   print('pg-stat-profiler: Failed to initiate logging, exiting...')
+   print('pg-stat-profiler: Reason [Invalid Environment Variable PG_STAT_PROFILER_LOGBASE={}]'.format(str(logbase)))
+   sys.exit()
+
 api_secret = os.getenv(u'PG_STAT_PROFILER_SECRET')
-if api_secret:  
-      keystore = api_keystore(api_secret,keystorefile)
-      profile_store = profilestore(api_secret,profilesfile)
-      profile_supervisor = profilesupervisor(api_secret,profilesfile)
-else:
-      logging.warning("Exception Shutdown : postgres-stat-profiler: No secret supplied")
+if not api_secret:  
+      print("pg-stat-profiler: Failed to find secret, exiting...")
+      print("Failed to find environment variable PG_STAT_PROFILER_SECRET")
       sys.exit()
-
 
 # profile supervisor control function: runs periodically in parallel with Flask
 
@@ -48,7 +51,7 @@ def check_supervisorjob():
       supervisorjob.join()
       supervisorjob = multiprocessing.Process(target=profile_supervisor.run,args=(profilesqueue,))
       supervisorjob.start()
-      logging.warning("Postgres Stat Profiler: supervisor restarted with processid :[{}]".format(str(supervisorjob.pid)))
+      logging.warning("pg-stat-profiler: supervisor restarted with processid :[{}]".format(str(supervisorjob.pid)))
    else:
      #  handle profile state changes passed from individual profiles up via supervisor
      #  ensures that only this main thread updates the persistent profilesfilestore
@@ -57,7 +60,7 @@ def check_supervisorjob():
         if 'name' in qdata:
            profile_store.updateProfile(qdata['name'],qdata)
   except Exception as e:
-      logging.warning("Unexpected Exception : Postgres Stat Profiler: Error checking supervisor :[{}]".format(str(e)))
+      logging.warning("pg-stat-profiler: Error checking supervisor :[{}]".format(str(e)))
 
 # main api Flask section
 
@@ -183,7 +186,32 @@ def delete_profile(name):
       return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
 
 def main():
+  global supervisorjob
+  global profilesqueue
+  global keystore
+  global profile_store
+  global profile_supervisor
   try:
+      logfilename = os.path.join(logbase,u"pg-stat-profiler.log")
+      logging.basicConfig(filename = logfilename, level=logging.WARNING,
+                    format='%(asctime)s[%(funcName)-5s] (%(processName)-10s) %(message)s',
+                    )
+      try:
+         logging.warning("Startup : postgres-stat-profiler : process logging")
+      except Exception as e:
+         print('pg-stat-profiler: Failed to initiate logging, exiting... Reason [{}]'.format(str(e)))
+         sys.exit()
+
+      try: 
+         keystorefile = os.path.join(secbase,u'.pg-stat-profiler.keystr')
+         profilesfile = os.path.join(secbase,u'.pg-stat-profiler.prof')
+         keystore = api_keystore(api_secret,keystorefile)
+         profile_store = profilestore(api_secret,profilesfile)
+         profile_supervisor = profilesupervisor(api_secret,profilesfile)
+      except Exception as e:
+         print('pg-stat-profiler: Failed to initiate data with secret, exiting... Reason [{}]'.format(str(e)))
+         sys.exit()
+      
       profilesqueue = multiprocessing.Queue()
       supervisorjob = multiprocessing.Process(target=profile_supervisor.run, args=(profilesqueue,))
       supervisorjob.start()
