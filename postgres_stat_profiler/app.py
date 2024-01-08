@@ -11,11 +11,12 @@ from postgres_stat_profiler.config.profilestore import profilestore
 from postgres_stat_profiler.supervision.profilesupervisor import profilesupervisor
 
 # environment
-
-installbase = os.path.expandvars(os.getenv(u'PG_STAT_PROFILER_BASE'))
-if not installbase:
+envprofilerbase = os.getenv(u'PG_STAT_PROFILER_BASE')
+if not envprofilerbase:
    print('pg-stat-profiler: Failed to find environment variable PG_STAT_PROFILER_BASE, using cwd')
    installbase = os.getcwd()
+else:
+   installbase = os.path.expandvars(envprofilerbase)
 secbase = os.path.join(installbase,u'postgres_stat_profiler/resources/sec')
 if not os.path.isdir(secbase):
    print('pg-stat-profiler: Failed to find security directory, exiting...')
@@ -23,10 +24,12 @@ if not os.path.isdir(secbase):
    print('pg-stat-profiler: Please supply correct environment variable PG_STAT_PROFILER_BASE'.format(str(installbase)))
    sys.exit()
 
-logbase = os.path.expandvars(os.getenv(u'PG_STAT_PROFILER_LOGBASE'))
-if not logbase:
+envlogbase = os.getenv(u'PG_STAT_PROFILER_LOGBASE')
+if not envlogbase:
    print('pg-stat-profiler: Failed to find environment variable PG_STAT_PROFILER_LOGBASE, using cwd')
    logbase = os.getcwd()
+else:
+   logbase = os.path.expandvars(envlogbase)
 if not os.path.isdir(logbase):
    print('pg-stat-profiler: Failed to initiate logging, exiting...')
    print('pg-stat-profiler: Reason [Invalid Environment Variable PG_STAT_PROFILER_LOGBASE={}]'.format(str(logbase)))
