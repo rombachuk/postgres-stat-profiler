@@ -52,7 +52,7 @@ class profilestore:
                   status = self.addProfile(name,data)
            return status
         except Exception as e:
-           logging.warn('pg-stat-profiler : unexpected profile-apiadd error : [{}]'.format(str(e)))
+           logging.warning('pg-stat-profiler : unexpected profile-apiadd error : [{}]'.format(str(e)))
            return False
         
     def addProfile(self,name,data):
@@ -64,7 +64,7 @@ class profilestore:
                      status = self._updateProfilesFile()
             return status
         except Exception as e:
-            logging.warn('pg-stat-profiler : unexpected profile-add error : [{}]'.format(str(e)))
+            logging.warning('pg-stat-profiler : unexpected profile-add error : [{}]'.format(str(e)))
             return False
         
     # update methods - available via PUT
@@ -77,7 +77,7 @@ class profilestore:
                   status = self.updateProfile(name,data)
            return status
         except Exception as e:
-           logging.warn('pg-stat-profiler : unexpected profile-apiadd error : [{}]'.format(str(e)))
+           logging.warning('pg-stat-profiler : unexpected profile-apiadd error : [{}]'.format(str(e)))
            return False
         
     def updateProfile(self,name,data):
@@ -89,7 +89,7 @@ class profilestore:
                      status = self._updateProfilesFile()
             return status
         except Exception as e:
-            logging.warn('pg-stat-profiler : unexpected profile-add error : [{}]'.format(str(e)))
+            logging.warning('pg-stat-profiler : unexpected profile-add error : [{}]'.format(str(e)))
             return False
         
     # delete methods
@@ -135,11 +135,11 @@ class profilestore:
                    if thisprofile and 'name' in thisprofile:
                        status = self.addProfile(thisprofile['name'],thisprofile)
                 except Exception as e:
-                  logging.warn('pg-stat-profiler : unexpected profile-fetch error : [{}]'.format(str(e)))
+                  logging.warning('pg-stat-profiler : unexpected profile-fetch error : [{}]'.format(str(e)))
                   status = False
                   break
           except Exception as e:
-             logging.warn('pg-stat-profiler : unexpected profile-fetch error : [{}]'.format(str(e)))
+             logging.warning('pg-stat-profiler : unexpected profile-fetch error : [{}]'.format(str(e)))
              status = False
              break
        return status

@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import time
 import multiprocessing
 from postgres_stat_profiler.config.profilestore import profilestore
@@ -10,12 +11,17 @@ class profilesupervisor():
         self.api_secret = api_secret
         self.profilejobs = {}
         self.profilestore = profilestore(self.api_secret,self.profilesfile)
-
+       
     def getProfilestore(self):
         return self.profilestore
 
-    def run(self, profilesqueue):
+    def run(self, profilesqueue, loggingqueue):
         try:
+         h = logging.handlers.QueueHandler(loggingqueue) 
+         logger = logging.getLogger()
+         logger.addHandler(h)
+         logging.warn('pg_stat_profiler: profilesupervisor started')
+
          while True:
             # refresh profiles from file (persistent store) each cycle
             # supervisor does not update the file directly to avoid race conditions with api
@@ -35,7 +41,7 @@ class profilesupervisor():
                 # start process if crashed, new or newly-enabled via api
                 if pname not in self.profilejobs and p.getStatus() == 'enabled':
                     logging.warning('pg-stat-profiler : Enabling profile execution : [{}]'.format(pname))
-                    thisprocess = multiprocessing.Process(target=p.run,args=(profilesqueue,))
+                    thisprocess = multiprocessing.Process(target=p.run,args=(profilesqueue,loggingqueue))
                     self.profilejobs[pname] = thisprocess
                     self.profilejobs[pname].start()
                     logging.warning('pg-stat-profiler : Enable profile execution success : [{}]'.format(pname))

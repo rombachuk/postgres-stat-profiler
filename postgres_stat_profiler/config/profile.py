@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import json
 import time
 from flask import request
@@ -67,8 +68,12 @@ class profile:
         self.valid = False
         return False
      
-  def run(self, profilesqueue):
+  def run(self, profilesqueue, loggingqueue):
        try: 
+        h = logging.handlers.QueueHandler(loggingqueue) 
+        logger = logging.getLogger()
+        logger.addHandler(h)
+        logging.warn('pg_stat_profiler: profile [{}] started'.format(self.name))
         while True:
            self.reportdbstatus = reportDatabase(self.report_connection.getConnectionString()).getStatus()
            self.monitordbstatus = monitoredDatabase(self.monitored_connection.getConnectionString()).getStatus()

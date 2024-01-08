@@ -1,6 +1,8 @@
 import sys
 import os
 import logging
+import logging.handlers
+import time
 from flask import Flask, abort, jsonify, make_response, request, Response
 from flask_apscheduler import APScheduler
 from functools import wraps
@@ -10,7 +12,7 @@ from postgres_stat_profiler.api_auth.api_keystore import api_keystore
 from postgres_stat_profiler.config.profilestore import profilestore
 from postgres_stat_profiler.supervision.profilesupervisor import profilesupervisor
 
-# environment
+# environment checks - fail to start if missing or not expandable
 envprofilerbase = os.getenv(u'PG_STAT_PROFILER_BASE')
 if not envprofilerbase:
    print('pg-stat-profiler: Failed to find environment variable PG_STAT_PROFILER_BASE, using cwd')
@@ -41,18 +43,36 @@ if not api_secret:
       print("Failed to find environment variable PG_STAT_PROFILER_SECRET")
       sys.exit()
 
-# profile supervisor control function: runs periodically in parallel with Flask
+# log listener which handles all child process logging to the common log file destination
+# note; logging to same file direct from many child processes is not safe
+# this runs in a child process supervised by check_slavejobs
+#
+def log_listener(file, queue):
+    listenerlogger = logging.getLogger()
+    h = logging.handlers.RotatingFileHandler(file, 'a', 100000000, 10)
+    f = logging.Formatter('%(asctime)s[%(funcName)-5s] (%(processName)-10s) %(message)s')
+    h.setFormatter(f)
+    listenerlogger.addHandler(h)
+    logging.warning('pg_stat-profiler: loglistener started')
+    while True:
+      while not queue.empty():
+        try:
+            record = queue.get()
+            if record is None:  # We send this as a sentinel to tell the listener to quit.
+                break
+            listenerlogger.handle(record)  # No level or filter logic applied - just do it!
+        except Exception as e:
+            print('pg-stat-profiler : loglistener : Unexpected error [{}]'.format(str(e)))
+      time.sleep(0.1)
 
-def check_supervisorjob():
-  global supervisorjob
-  global profilesqueue
-  global profile_supervisor
-  global profile_store
+# profile supervisor control function: runs periodically in parallel with Flask
+#
+def check_slavejobs(loggingjob,loggingqueue,logfilename,supervisorjob,profilesqueue,profile_supervisor,profile_store):
   try:
    # 
    if not supervisorjob.is_alive():
       supervisorjob.join()
-      supervisorjob = multiprocessing.Process(target=profile_supervisor.run,args=(profilesqueue,))
+      supervisorjob = multiprocessing.Process(target=profile_supervisor.run,args=(profilesqueue,loggingqueue))
       supervisorjob.start()
       logging.warning("pg-stat-profiler: supervisor restarted with processid :[{}]".format(str(supervisorjob.pid)))
    else:
@@ -62,8 +82,16 @@ def check_supervisorjob():
         qdata = profilesqueue.get()
         if 'name' in qdata:
            profile_store.updateProfile(qdata['name'],qdata)
+   #
+   # restart loglistener if it fails
+   if not loggingjob.is_alive():
+      loggingjob.join()
+      loggingjob = multiprocessing.Process(target=log_listener,args=(logfilename,loggingqueue))
+      loggingjob.start()
+      logging.warning("pg-stat-profiler: loglistener restarted with processid :[{}]".format(str(loggingjob.pid)))
+
   except Exception as e:
-      logging.warning("pg-stat-profiler: Error checking supervisor :[{}]".format(str(e)))
+      logging.warning("pg-stat-profiler: Error checking supervisor and loglistener :[{}]".format(str(e)))
 
 # main api Flask section
 
@@ -187,23 +215,26 @@ def delete_profile(name):
         return jsonify({'result':'error'},200) 
    except Exception as e:
       return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
+   
+
 
 def main():
-  global supervisorjob
-  global profilesqueue
+  
+  # globals to share variables with flask
   global keystore
   global profile_store
-  global profile_supervisor
   try:
-      logfilename = os.path.join(logbase,u"pg-stat-profiler.log")
-      logging.basicConfig(filename = logfilename, level=logging.WARNING,
-                    format='%(asctime)s[%(funcName)-5s] (%(processName)-10s) %(message)s',
-                    )
-      try:
-         logging.warning("Startup : postgres-stat-profiler : process logging")
-      except Exception as e:
-         print('pg-stat-profiler: Failed to initiate logging, exiting... Reason [{}]'.format(str(e)))
-         sys.exit()
+      # set up logging for this main process
+      logfilename = os.path.join(logbase,u'pg-stat-profiler.log')
+      mainlogger = logging.getLogger()
+      h = logging.handlers.RotatingFileHandler(logfilename, 'a', 100000000, 10)
+      f = logging.Formatter('%(asctime)s[%(funcName)-5s] (%(processName)-10s) %(message)s')
+      h.setFormatter(f)
+      mainlogger.addHandler(h)
+      # set up logging to same file for child processes (via the loggingjob child)
+      loggingqueue = multiprocessing.Queue()
+      loggingjob = multiprocessing.Process(target=log_listener,args=(logfilename,loggingqueue))
+      loggingjob.start()
 
       try: 
          keystorefile = os.path.join(secbase,u'.pg-stat-profiler.keystr')
@@ -216,17 +247,20 @@ def main():
          sys.exit()
       
       profilesqueue = multiprocessing.Queue()
-      supervisorjob = multiprocessing.Process(target=profile_supervisor.run, args=(profilesqueue,))
+      supervisorjob = multiprocessing.Process(target=profile_supervisor.run, args=(profilesqueue,loggingqueue))
       supervisorjob.start()
-      scheduler.add_job(id=u'periodic_supervisorcheck',func=check_supervisorjob, trigger='interval', seconds=10)      
+      scheduler.add_job(id=u'periodic_supervisorcheck',func=check_slavejobs,
+            args=[loggingjob,loggingqueue,logfilename,supervisorjob,profilesqueue,profile_supervisor,profile_store],
+            trigger='interval', seconds=10)      
       app.debug = False
       app.run(ssl_context='adhoc')
+      logging.warn('pg-stat-profiler: api started')
   except Exception as e:
-      logging.warning("Exception Shutdown : postgres-stat-profiler: Error ["+str(e)+"]")
+      logging.warning("pg-stat-profiler: Unexpected Error ["+str(e)+"]")
       sys.exit()
 
 if __name__ == '__main__':
-   main()
+      main()
 
 # Helper functions
 
