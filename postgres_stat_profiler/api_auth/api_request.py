@@ -1,6 +1,6 @@
 from flask import request, make_response, jsonify
 
-class api_auth:
+class api_request:
 
   def __init__(self,request):
     self.request = request 

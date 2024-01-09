@@ -7,7 +7,7 @@ from flask import Flask, abort, jsonify, make_response, request, Response
 from flask_apscheduler import APScheduler
 from functools import wraps
 import multiprocessing
-from postgres_stat_profiler.api_auth.api_auth import api_auth
+from postgres_stat_profiler.api_auth.api_request import api_request
 from postgres_stat_profiler.api_auth.api_keystore import api_keystore
 from postgres_stat_profiler.config.profilestore import profilestore
 from postgres_stat_profiler.supervision.profilesupervisor import profilesupervisor
@@ -106,7 +106,7 @@ def fail_authenticate():
 def requires_secret_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        request_auth = api_auth(request)
+        request_auth = api_request(request)
         if not request_auth.getValid():
             return fail_authenticate()  
         else:
@@ -119,7 +119,7 @@ def requires_secret_auth(f):
 def requires_api_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        request_auth = api_auth(request)
+        request_auth = api_request(request)
         if not request_auth.getValid():
             return fail_authenticate()  
         else:

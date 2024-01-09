@@ -1,42 +1,52 @@
+import psycopg
 
-
-class reportschema():
+class cumulative_statstatements:
 
     def __init__(self):
-        self.create_schema = []
         self.create_tables = []
+        self._getTableCreateCommands()
         self.create_indexes = []
-        self._getSchemaCommands()
-        self._getTableCommands()
-        self._getIndexCommands()
-
-    def getCreateSchema(self):
-        return self.create_schema
-    
+        self._getIndexCreateCommands()
+        self._getCollectQuery()
+        self._getInsertQuery()
+       
     def getCreateTables(self):
         return self.create_tables
     
     def getCreateIndexes(self):
         return self.create_indexes
     
-    def getTestCommand(self):
-        return u'SELECT * FROM postgres_stat_profiler.cumulative_result_pg_stat_statements LIMIT 1'
+    def getCollectQuery(self):
+        return self.collectquery
+    
+    def getInsertQuery(self):
+        return self.insertquery
+    
+    def getInsertRecord(self,name,row):
+        ir = {}
+        ir['profilename'] = name
+        ir['result_time'] = None
+        ir['result_epoch'] = None
+        ir['dbname'] = row['dbname']
+        ir['username'] = row['username']
+        ir['dbid'] = row['dbid']
+        ir['userid'] = row['userid']
+        ir['username'] = row['username']
+        ir['queryid'] = row['queryid']
+        ir['query'] = row['query']
+        ir['toplevel'] = row['toplevel']
+        ir['calls'] = row['calls']
+        ir['username'] = row['username']
+        ir['username'] = row['username']
+        
 
-    def _getSchemaCommands(self):
-        drop_postgres_stat_profiler_schema = \
-        u"DROP SCHEMA postgres_stat_profiler"
-        self.create_schema.append(drop_postgres_stat_profiler_schema)
 
-        create_postgres_stat_profiler_schema = \
-        u"CREATE SCHEMA postgres_stat_profiler"
-        self.create_schema.append(create_postgres_stat_profiler_schema)
-
-    def _getTableCommands(self):
-        drop_cumulative_result_pg_stat_statements = \
+    def _getTableCreateCommands(self):
+        drop = \
         u"DROP TABLE postgres_stat_profiler.cumulative_result_pg_stat_statements"
-        self.create_tables.append(drop_cumulative_result_pg_stat_statements)
+        self.create_tables.append(drop)
                 
-        cumulative_result_pg_stat_statements = \
+        create = \
         u"""CREATE TABLE postgres_stat_profiler.cumulative_result_pg_stat_statements (
                 profilename text,
                 result_time timestamp,
@@ -78,14 +88,23 @@ class reportschema():
                 wal_fpi bigint
             )
         """
-        self.create_tables.append(cumulative_result_pg_stat_statements)
+        self.create_tables.append(create)
 
-        drop_incremental_result_pg_stat_statements = \
-        u"DROP TABLE postgres_stat_profiler.incremental_result_pg_stat_statements"
-        self.create_tables.append(drop_incremental_result_pg_stat_statements)
-                
-        incremental_result_pg_stat_statements = \
-        u"""CREATE TABLE postgres_stat_profiler.incremental_result_pg_stat_statements (
+    def _getIndexCreateCommands(self):
+        pass
+
+    def _getCollectQuery(self):
+        self.collectquery = """
+         select usename,datname,queryid,left(query,100)as query_first_100chars,calls,
+         round(total_exec_time::numeric,3) as total_exec_time,round(mean_exec_time::numeric,3) as mean_exec_time 
+         from pg_stat_statements pss, pg_catalog.pg_user pu, pg_catalog.pg_database pd 
+         WHERE pss.userid=pu.usesysid AND pss.dbid = pd.oid 
+         order by total_exec_time desc limit 100
+        """
+
+    def _getInsertQuery(self):
+        self.insertquery = """
+        INSERT into postgres_stat_profiler.cumulative_result_pg_stat_statements (
                 profilename text,
                 result_time timestamp,
                 result_epoch bigint,
@@ -124,9 +143,10 @@ class reportschema():
                 wal_bytes numeric,
                 wal_records bigint,
                 wal_fpi bigint
+            ) VALUES (
+                %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+                %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+                %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+                %s,%s,%s,%s,%s,%s,%s
             )
         """
-        self.create_tables.append(incremental_result_pg_stat_statements)
-
-    def _getIndexCommands(self):
-        pass

@@ -1,7 +1,8 @@
 import os
 import logging
 import psycopg
-from postgres_stat_profiler.database.reportschema import reportschema
+from postgres_stat_profiler.collector.reportschema import reportschema
+
 
 class reportDatabase():
 
@@ -12,6 +13,9 @@ class reportDatabase():
 
     def setConfig(self,config):
         self.config = config
+
+    def getConnstring(self):
+        return self.connstring
 
     def getStatus(self):
         return self.status

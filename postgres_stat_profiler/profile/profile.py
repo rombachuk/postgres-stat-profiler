@@ -4,8 +4,9 @@ import json
 import time
 from flask import request
 from postgres_stat_profiler.config.connection import connection
-from postgres_stat_profiler.database.reportDatabase import reportDatabase
-from postgres_stat_profiler.database.monitoredDatabase import monitoredDatabase
+from postgres_stat_profiler.collector.reportDatabase import reportDatabase
+from postgres_stat_profiler.collector.monitoredDatabase import monitoredDatabase
+from postgres_stat_profiler.collector.collector import collector
 
 class profile:
   
@@ -73,13 +74,24 @@ class profile:
         h = logging.handlers.QueueHandler(loggingqueue) 
         logger = logging.getLogger()
         logger.addHandler(h)
-        logging.warn('pg_stat_profiler: profile [{}] started'.format(self.name))
+        logging.warn('pg_stat_profiler: profile data collector [{}] started'.format(self.name))
+        check_interval = 10
+        collect_interval = 60
+        counter = 0
         while True:
-           self.reportdbstatus = reportDatabase(self.report_connection.getConnectionString()).getStatus()
-           self.monitordbstatus = monitoredDatabase(self.monitored_connection.getConnectionString()).getStatus()
+           # check status before trying collection (every check_interval)
+           coll = collector(self.name,self.monitored_connection,self.report_connection)
+           self.reportdbstatus = coll.getReportDBstatus()
+           self.monitordbstatus = coll.getMonitoredDBstatus()
            # pass result back via queue to grandparent main process - which updates the (persistent, encrypted) profilesfile
            result = {"name": self.name, "reportdbstatus": self.reportdbstatus, "monitordbstatus": self.monitordbstatus }
            profilesqueue.put(result)
+
+           # attempt collection (every connection interval)
+           counter = counter+1
+           if check_interval*counter > collect_interval:
+              coll.collect()
+              counter = 0
            time.sleep(10.0)
            
        except Exception as e:

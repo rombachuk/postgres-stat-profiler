@@ -11,6 +11,9 @@ class monitoredDatabase():
     def setConfig(self,config):
         self.config = config
 
+    def getConnstring(self):
+        return self.connstring
+
     def getStatus(self):
         return self.status
 
