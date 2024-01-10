@@ -30,21 +30,32 @@ class collector:
                rtime_minute = now.strftime('%Y-%m-%d %H:%M')
                rtime_epoch = int((datetime.strptime(rtime_minute,'%Y-%m-%d %H:%M') - datetime(1970, 1, 1)).total_seconds())
 
-               # collect from monitored database and insert into report database
-               cumulativess = cumulative_statstatements()
-               cumulative_collectquery = cumulativess.getCollectQuery()
                mconn = psycopg.connect(self.monitordb.getConnstring(),row_factory=dict_row)
                rconn = psycopg.connect(self.reportdb.getConnstring(),row_factory=dict_row)
+
+               # collect from monitored database and insert latest data into report database
+               cumulativess = cumulative_statstatements()
+               cumulative_collectquery = cumulativess.getCollectQuery()
                collectrecords = mconn.execute(cumulative_collectquery).fetchall()
-               rowcount = 0
                for collectrecord in collectrecords:
                    cumulative_insertquery = cumulativess.getInsertQuery()
-                   insert_record = cumulativess.getInsertRecord(self.profilename,rtime_minute,rtime_epoch,collectrecord)
-                   result = rconn.execute(cumulative_insertquery, insert_record)
-                   rowcount = rowcount+1
+                   cumulative_insertrecord = cumulativess.getInsertRecord(self.profilename,rtime_minute,rtime_epoch,collectrecord)
+                   result = rconn.execute(cumulative_insertquery, cumulative_insertrecord)
                rconn.commit()
                #logging.warning('pg-stat-profiler: cumulative statements collect success for [{}]'.format(rtime_minute))
                mconn.close()
+
+               # compare latest and previous rows in cumulative table to generate incremental data (ie for activity within the last minute)
+               incrementalss = incremental_statstatements()
+               incremental_collectquery = incrementalss.getCollectQuery(self.profilename)
+               incrementalrecords = rconn.execute(incremental_collectquery).fetchall()
+               for incrementalrecord in incrementalrecords:
+                   incremental_insertquery = incrementalss.getInsertQuery()
+                   incremental_insertrecord = incrementalss.getInsertRecord(incrementalrecord)
+                   result = rconn.execute(incremental_insertquery,incremental_insertrecord)
+               rconn.commit()
+               #logging.warning('pg-stat-profiler: incremental statements collect success for [{}]'.format(rtime_minute))
                rconn.close()
+
             except (Exception, psycopg.Error) as e:
                logging.warning('pg-stat-profiler: collector : query error [{}]'.format(str(e)))
