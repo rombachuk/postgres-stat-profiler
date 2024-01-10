@@ -75,24 +75,19 @@ class profile:
         logger = logging.getLogger()
         logger.addHandler(h)
         logging.warn('pg_stat_profiler: profile data collector [{}] started'.format(self.name))
-        check_interval = 10
-        collect_interval = 60
-        counter = 0
+        sleep_interval = 60.0
+        starttime = time.monotonic()
         while True:
-           # check status before trying collection (every check_interval)
+           
            coll = collector(self.name,self.monitored_connection,self.report_connection)
+           # report status to parent processes to allow api read of status      
            self.reportdbstatus = coll.getReportDBstatus()
            self.monitordbstatus = coll.getMonitoredDBstatus()
            # pass result back via queue to grandparent main process - which updates the (persistent, encrypted) profilesfile
            result = {"name": self.name, "reportdbstatus": self.reportdbstatus, "monitordbstatus": self.monitordbstatus }
            profilesqueue.put(result)
-
-           # attempt collection (every connection interval)
-           counter = counter+1
-           if check_interval*counter > collect_interval:
-              coll.collect()
-              counter = 0
-           time.sleep(10.0)
+           coll.collect()
+           time.sleep(sleep_interval - ((time.monotonic() - starttime) % sleep_interval))
            
        except Exception as e:
         logging.warning('pg-stat-profiler : unexpected profile-run error : [{}]'.format(str(e)))
