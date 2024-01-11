@@ -82,7 +82,7 @@ class cumulative_statstatements:
                 dbid oid,
                 userid oid,
                 querytype text,
-                queryid bigint,
+                queryid text,
                 query text,
                 toplevel boolean,
                 calls bigint,
