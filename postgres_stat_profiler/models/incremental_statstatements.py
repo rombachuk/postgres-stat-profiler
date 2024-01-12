@@ -32,7 +32,7 @@ class incremental_statstatements:
         ir['dbname'] = row['dbname']
         ir['dbid'] = row['dbid']
         ir['userid'] = row['userid']
-        ir['querytype'] = u'temp'
+        ir['querytype'] = row['querytype']
         ir['queryid'] = row['queryid']
         ir['query'] = row['query']
         ir['toplevel'] = row['toplevel']

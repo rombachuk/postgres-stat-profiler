@@ -57,5 +57,5 @@ class collector:
                #logging.warning('pg-stat-profiler: incremental statements collect success for [{}]'.format(rtime_minute))
                rconn.close()
 
-            except (Exception, psycopg.Error) as e:
-               logging.warning('pg-stat-profiler: collector : query error [{}]'.format(str(e)))
+            except Exception as e:
+               logging.warning('pg-stat-profiler: collector : collect error [{}]'.format(str(e)))

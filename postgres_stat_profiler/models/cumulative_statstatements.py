@@ -1,4 +1,5 @@
 import psycopg
+import logging
 from datetime import datetime
 
 class cumulative_statstatements:
@@ -32,7 +33,7 @@ class cumulative_statstatements:
         ir['dbname'] = row['dbname']
         ir['dbid'] = row['dbid']
         ir['userid'] = row['userid']
-        ir['querytype'] = u'temp'
+        ir['querytype'] = self._getQueryType(row['query'])
         ir['queryid'] = row['queryid']
         ir['query'] = row['query']
         ir['toplevel'] = row['toplevel']
@@ -66,6 +67,25 @@ class cumulative_statstatements:
         irlist = list(ir.values())
         return irlist
         
+
+    def _getQueryType(self,query):
+        try: 
+          # search for first SQL verb and allocate it to the query type, otherwise unknown for storedprocedures and so on
+          type = 'unknown'
+          tokens = query.split()
+          valid_types = [u'alter', u'analyze', u' begin', u'call', u'comment', u'commit', u'create', u'drop', u'delete', u'explain',
+                         u'grant', u'insert', u'label', u'lock', u'merge', u'refresh',  u'revoke', u'rollback', u'select', u'set', u'update']
+          typefound = False
+          index = 0
+          while index < len(tokens) and not typefound:
+            token = tokens[index].lower()
+            if token in valid_types:
+                type = token
+                typefound = True
+            index = index+1
+          return type
+        except Exception as e:
+            logging.warning('pg-stat-profiler: cumulative_statstatements : querytype error [{}]'.format(str(e)))
 
     def _getTableCreateCommands(self):
         drop = \
