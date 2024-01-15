@@ -13,8 +13,8 @@ class collector:
 
     def __init__(self,name, queryenc, querysecret, monitorconn,reportconn):
         self.profilename = name
-        self.queryencryption = queryenc,
-        self.queryencryptionsecret = querysecret,
+        self.queryencryption = queryenc
+        self.queryencryptionsecret = querysecret
         self.monitor_connection = monitorconn
         self.monitordb = monitoredDatabase(self.monitor_connection.getConnectionString())
         self.report_connection =  reportconn
@@ -33,7 +33,7 @@ class collector:
                now = datetime.now()
                rtime_minute = now.strftime('%Y-%m-%d %H:%M')
                rtime_epoch = int((datetime.strptime(rtime_minute,'%Y-%m-%d %H:%M') - datetime(1970, 1, 1)).total_seconds())
-               if self.queryencryption:
+               if self.queryencryption == u'enabled':
                   secretbytes = base64.urlsafe_b64decode(self.queryencryptionsecret)          
                   fernetkey = base64.urlsafe_b64encode(secretbytes.ljust(32)[:32])
                   queryfernet = Fernet(fernetkey)

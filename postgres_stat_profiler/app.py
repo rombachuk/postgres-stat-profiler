@@ -193,6 +193,18 @@ def create_profile(name):
         return jsonify({'result':'error'},200) 
    except Exception as e:
       return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
+   
+@app.route('/_api/v1.0/profiles/<name>/decryptQuery',methods=['POST'])
+@requires_api_auth
+def decrypt_profile_query(name):
+   try:
+    status,query = profile_store.decryptProfileQuery(name,request)
+    if status:
+        return jsonify({'result':'ok','decrypted_query':query},200) 
+    else:
+        return jsonify({'result':'error'},200) 
+   except Exception as e:
+      return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
 
 @app.route('/_api/v1.0/profiles/<name>',methods=['PUT'])
 @requires_api_auth

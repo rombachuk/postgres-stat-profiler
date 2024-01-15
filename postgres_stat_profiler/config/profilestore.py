@@ -67,6 +67,35 @@ class profilestore:
             logging.warning('pg-stat-profiler : unexpected profile-add error : [{}]'.format(str(e)))
             return False
         
+    def decryptProfileQuery(self,name,request):
+        status = False
+        query = u''
+        try:
+            if name in self.profiles:
+               if request.headers.get('Content-Type'):
+                  data = request.get_json()
+                  status,query = self._decryptProfileQuery(name,data)
+            return status,query
+        except Exception as e:
+            logging.warning('pg-stat-profiler : unexpected profile-query-decrypt error : [{}]'.format(str(e)))
+            return status,query
+        
+    def _decryptProfileQuery(self,name,data):
+        status = False
+        query = u''
+        try:
+            if name in self.profiles:
+              if 'queryencryptionsecret' in data and 'query' in data:
+                   querysecret = data['queryencryptionsecret'].encode(u"utf-8")
+                   queryfernetkey = base64.urlsafe_b64encode(querysecret.ljust(32)[:32])
+                   queryfernet = Fernet(queryfernetkey)
+                   query = queryfernet.decrypt(data['query'].encode(u"utf-8")).decode("utf-8")
+                   status = True
+            return status,query
+        except Exception as e:
+            logging.warning('pg-stat-profiler : unexpected profile-query-decrypt error : [{}]'.format(str(e)))
+            return status,query
+        
     # update methods - available via PUT
     def updateProfileApi(self,name,request):
         status = False

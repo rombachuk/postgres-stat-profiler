@@ -42,13 +42,13 @@ class profile:
   # Do not call this method from api handlers. exposes secrets.
   # Use only for storing config persistence into (encrypted) file. 
   def getAllDetails(self):
-     return self._getDetails(self.monitored_connection.getAllDetails(),self.report_connection.getAllDetails())
+     return self._getAllDetails(self.monitored_connection.getAllDetails(),self.report_connection.getAllDetails())
   
   def _getAllDetails(self,monitoredconndetails,reportconndetails):
      try: 
-        return "{{ 'name' : '{}', 'status': '{}', 'queryencryption' : '{}', 'queryencryptionsecret' : '{}', \
+        return "{{ 'name' : '{}', 'status': '{}', 'queryencryption' : '{}', 'queryencryptionsecret' : '{}',\
            'monitored_connection' : {{{}}}, 'monitordbstatus' : '{}', 'report_connection' : {{{}}}, 'reportdbstatus' : '{}' }}".\
-             format(self.name, self.status,self.queryencryption,\
+             format(self.name, self.status,self.queryencryption,self.queryencryptionsecret,\
              monitoredconndetails, self.getMonitoredDBstatus(),\
              reportconndetails, self.getReportDBstatus())
      except Exception as e:
@@ -57,11 +57,11 @@ class profile:
   # Use for api handlers
   # credentials and querysecret not exposed via this method
   def getApiDetails(self):
-     return self._getDetails(self.monitored_connection.getApiDetails(),self.report_connection.getApiDetails())
+     return self._getApiDetails(self.monitored_connection.getApiDetails(),self.report_connection.getApiDetails())
 
   def _getApiDetails(self,monitoredconndetails,reportconndetails):
      try: 
-        return "{{ 'name' : '{}', 'status': '{}', 'queryencryption' : '{}', \
+        return "{{ 'name' : '{}', 'status': '{}', 'queryencryption' : '{}',\
            'monitored_connection' : {{{}}}, 'monitordbstatus' : '{}', 'report_connection' : {{{}}}, 'reportdbstatus' : '{}' }}".\
              format(self.name, self.status,self.queryencryption,\
              monitoredconndetails, self.getMonitoredDBstatus(),\
@@ -75,7 +75,7 @@ class profile:
            if data:
              if 'status' in data and ((data['status'] == u'disabled') or (data['status'] == u'enabled')):
                self.status = data['status']
-             if 'queryencryption' in data and ((data['queryencryption'] == u'disabled') or (data['status'] == u'enabled')):
+             if 'queryencryption' in data and ((data['queryencryption'] == u'disabled') or (data['queryencryption'] == u'enabled')):
                self.queryencryption = data['queryencryption']
              if self.queryencryption == u'enabled' and 'queryencryptionsecret' in data:
                self.queryencryptionsecret = data['queryencryptionsecret']

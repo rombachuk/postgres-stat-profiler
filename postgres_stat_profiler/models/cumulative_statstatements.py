@@ -35,7 +35,7 @@ class cumulative_statstatements:
         ir['userid'] = row['userid']
         ir['querytype'] = self._getQueryType(row['query'])
         ir['queryid'] = row['queryid']
-        if queryenc:
+        if queryenc == u'enabled':
           encryptedstring = queryfernet.encrypt(row['query'].encode('utf-8'))
           ir['query'] = encryptedstring.decode('utf-8')
         else:
