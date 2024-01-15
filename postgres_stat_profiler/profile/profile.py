@@ -1,6 +1,6 @@
 import logging
 import logging.handlers
-import json
+import base64
 import time
 from flask import request
 from postgres_stat_profiler.config.connection import connection
@@ -12,10 +12,17 @@ class profile:
   
   def __init__(self,data):
      self.valid = False
+     self.queryencryption = u'disabled'
+     self.queryencryptionsecret = u''
      if 'name' in data:
         self.name = data['name']
         if self._setStatuses(data) and self._setConnections(data):
            self.valid = True
+     if 'queryencryption' in data and (data['queryencryption'] == u'enabled' or data['queryencryption'] == u'disabled' ) \
+     and 'queryencryptionsecret' in data:
+        self.queryencryption = data['queryencryption']
+        self.queryencryptionsecret = data['queryencryptionsecret']
+
  
   def getName(self):
       return self.name
@@ -32,17 +39,31 @@ class profile:
   def getValid(self):
      return self.valid
   
+  # Do not call this method from api handlers. exposes secrets.
+  # Use only for storing config persistence into (encrypted) file. 
   def getAllDetails(self):
      return self._getDetails(self.monitored_connection.getAllDetails(),self.report_connection.getAllDetails())
   
-  # credentials never exposed over GET from api
+  def _getAllDetails(self,monitoredconndetails,reportconndetails):
+     try: 
+        return "{{ 'name' : '{}', 'status': '{}', 'queryencryption' : '{}', 'queryencryptionsecret' : '{}', \
+           'monitored_connection' : {{{}}}, 'monitordbstatus' : '{}', 'report_connection' : {{{}}}, 'reportdbstatus' : '{}' }}".\
+             format(self.name, self.status,self.queryencryption,\
+             monitoredconndetails, self.getMonitoredDBstatus(),\
+             reportconndetails, self.getReportDBstatus())
+     except Exception as e:
+        logging.warning('pg-stat-profiler : unexpected profile-getDetails error : [{}]'.format(str(e)))
+
+  # Use for api handlers
+  # credentials and querysecret not exposed via this method
   def getApiDetails(self):
      return self._getDetails(self.monitored_connection.getApiDetails(),self.report_connection.getApiDetails())
 
-  def _getDetails(self,monitoredconndetails,reportconndetails):
+  def _getApiDetails(self,monitoredconndetails,reportconndetails):
      try: 
-        return "{{ 'name' : '{}', 'status': '{}', 'monitored_connection' : {{{}}}, 'monitordbstatus' : '{}', 'report_connection' : {{{}}}, 'reportdbstatus' : '{}' }}".\
-             format(self.name, str(self.status),\
+        return "{{ 'name' : '{}', 'status': '{}', 'queryencryption' : '{}', \
+           'monitored_connection' : {{{}}}, 'monitordbstatus' : '{}', 'report_connection' : {{{}}}, 'reportdbstatus' : '{}' }}".\
+             format(self.name, self.status,self.queryencryption,\
              monitoredconndetails, self.getMonitoredDBstatus(),\
              reportconndetails, self.getReportDBstatus())
      except Exception as e:
@@ -54,6 +75,10 @@ class profile:
            if data:
              if 'status' in data and ((data['status'] == u'disabled') or (data['status'] == u'enabled')):
                self.status = data['status']
+             if 'queryencryption' in data and ((data['queryencryption'] == u'disabled') or (data['status'] == u'enabled')):
+               self.queryencryption = data['queryencryption']
+             if self.queryencryption == u'enabled' and 'queryencryptionsecret' in data:
+               self.queryencryptionsecret = data['queryencryptionsecret']
              if 'report_connection' in data:
                self.report_connection.update(data['report_connection'])
              if 'reportdbstatus'in data:
@@ -79,7 +104,7 @@ class profile:
         starttime = time.monotonic()
         while True:
            
-           coll = collector(self.name,self.monitored_connection,self.report_connection)
+           coll = collector(self.name,self.queryencryption,self.queryencryptionsecret,self.monitored_connection,self.report_connection)
            # report status to parent processes to allow api read of status      
            self.reportdbstatus = coll.getReportDBstatus()
            self.monitordbstatus = coll.getMonitoredDBstatus()
@@ -103,7 +128,7 @@ class profile:
      except Exception as e:
         logging.warning('pg-stat-profiler : unexpected profile-setConnections error : [{}]'.format(str(e)))
         return False
-
+         
   def _setStatuses(self,data):
      try:
            if data and 'status' in data :

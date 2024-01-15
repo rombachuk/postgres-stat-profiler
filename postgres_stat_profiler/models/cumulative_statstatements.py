@@ -1,6 +1,6 @@
 import psycopg
 import logging
-from datetime import datetime
+from cryptography.fernet import Fernet
 
 class cumulative_statstatements:
 
@@ -24,7 +24,7 @@ class cumulative_statstatements:
     def getInsertQuery(self):
         return self.insertquery
     
-    def getInsertRecord(self,name,recordtime,recordepoch,row):
+    def getInsertRecord(self,name,recordtime,recordepoch,queryenc,queryfernet,row):
         ir = {}
         ir['profilename'] = name
         ir['result_time'] = recordtime
@@ -35,7 +35,11 @@ class cumulative_statstatements:
         ir['userid'] = row['userid']
         ir['querytype'] = self._getQueryType(row['query'])
         ir['queryid'] = row['queryid']
-        ir['query'] = row['query']
+        if queryenc:
+          encryptedstring = queryfernet.encrypt(row['query'].encode('utf-8'))
+          ir['query'] = encryptedstring.decode('utf-8')
+        else:
+          ir['query'] = row['query']
         ir['toplevel'] = row['toplevel']
         ir['calls'] = row['calls']
         ir['total_exec_time'] = row['total_exec_time']

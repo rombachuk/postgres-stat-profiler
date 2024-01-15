@@ -1,7 +1,6 @@
 import base64 
 import os
 import logging
-from subprocess import check_output
 
 class connection:
 

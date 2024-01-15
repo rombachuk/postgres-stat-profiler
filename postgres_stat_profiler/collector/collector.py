@@ -1,4 +1,6 @@
 from datetime import datetime
+import base64
+from cryptography.fernet import Fernet
 import psycopg
 from psycopg.rows import dict_row
 import logging
@@ -9,8 +11,10 @@ from postgres_stat_profiler.models.incremental_statstatements import incremental
 
 class collector:
 
-    def __init__(self,name, monitorconn,reportconn):
+    def __init__(self,name, queryenc, querysecret, monitorconn,reportconn):
         self.profilename = name
+        self.queryencryption = queryenc,
+        self.queryencryptionsecret = querysecret,
         self.monitor_connection = monitorconn
         self.monitordb = monitoredDatabase(self.monitor_connection.getConnectionString())
         self.report_connection =  reportconn
@@ -29,6 +33,12 @@ class collector:
                now = datetime.now()
                rtime_minute = now.strftime('%Y-%m-%d %H:%M')
                rtime_epoch = int((datetime.strptime(rtime_minute,'%Y-%m-%d %H:%M') - datetime(1970, 1, 1)).total_seconds())
+               if self.queryencryption:
+                  secretbytes = base64.urlsafe_b64decode(self.queryencryptionsecret)          
+                  fernetkey = base64.urlsafe_b64encode(secretbytes.ljust(32)[:32])
+                  queryfernet = Fernet(fernetkey)
+               else:
+                  queryfernet = None
 
                mconn = psycopg.connect(self.monitordb.getConnstring(),row_factory=dict_row)
                rconn = psycopg.connect(self.reportdb.getConnstring(),row_factory=dict_row)
@@ -39,7 +49,8 @@ class collector:
                collectrecords = mconn.execute(cumulative_collectquery).fetchall()
                for collectrecord in collectrecords:
                    cumulative_insertquery = cumulativess.getInsertQuery()
-                   cumulative_insertrecord = cumulativess.getInsertRecord(self.profilename,rtime_minute,rtime_epoch,collectrecord)
+                   cumulative_insertrecord = cumulativess.getInsertRecord(self.profilename,rtime_minute,rtime_epoch, \
+                                                                          self.queryencryption,queryfernet,collectrecord)
                    result = rconn.execute(cumulative_insertquery, cumulative_insertrecord)
                rconn.commit()
                #logging.warning('pg-stat-profiler: cumulative statements collect success for [{}]'.format(rtime_minute))
