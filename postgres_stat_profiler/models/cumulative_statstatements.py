@@ -77,7 +77,7 @@ class cumulative_statstatements:
           # search for first SQL verb and allocate it to the query type, otherwise unknown for storedprocedures and so on
           type = 'unknown'
           tokens = query.split()
-          valid_types = [u'alter', u'analyze', u' begin', u'call', u'comment', u'commit', u'create', u'drop', u'delete', u'explain',
+          valid_types = [u'alter', u'analyze', u'begin', u'call', u'comment', u'commit', u'create', u'drop', u'delete', u'explain',
                          u'grant', u'insert', u'label', u'lock', u'merge', u'refresh',  u'revoke', u'rollback', u'select', u'set', u'update']
           typefound = False
           index = 0
