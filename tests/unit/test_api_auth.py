@@ -3,20 +3,20 @@ import uuid
 import os
 from unittest.mock import MagicMock
 from flask import request
-from postgres_stat_profiler.api_auth.api_request import api_auth
+from postgres_stat_profiler.api_auth.api_request import api_request
 
 class TestApi_auth(unittest.TestCase):
 
     def test_init(self):
         randomstring = uuid.uuid1()
         mock_request = MagicMock(authorization = randomstring)
-        auth = api_auth(mock_request)
-        key = auth.getRequestkey() 
+        req = api_request(mock_request)
+        key = req.getRequestkey() 
         assert key == randomstring
-        assert auth.getValid()
+        assert req.getValid()
 
     def test_missingAuth(self):
         mock_request = MagicMock(authorization = None)
-        auth = api_auth(mock_request)
-        key = auth.getRequestkey() 
-        assert not auth.getValid()
+        req = api_request(mock_request)
+        key = req.getRequestkey() 
+        assert not req.getValid()
