@@ -6,6 +6,19 @@ from postgres_stat_profiler import create_app
 
 @pytest.fixture(scope='module')
 def test_client():
+    envprofilerbase = os.getenv(u'PG_STAT_PROFILER_BASE')
+    if not envprofilerbase:
+       installbase = os.getcwd()
+    else:
+       installbase = os.path.expandvars(envprofilerbase)
+    secbase = os.path.join(installbase,u'postgres_stat_profiler/resources/sec')
+    keystorefile = os.path.join(secbase,u'.pg-stat-profiler.keystr')
+    profilesfile = os.path.join(secbase,u'.pg-stat-profiler.prof')
+    if os.path.isfile(keystorefile):
+           os.remove(keystorefile)
+    if os.path.isfile(profilesfile):
+           os.remove(profilesfile)
+    
 
     flask_app = create_app()
     # Create a test client using the Flask application configured for testing
