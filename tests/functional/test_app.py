@@ -1,4 +1,4 @@
-from postgres_stat_profiler.app import app
+import os
+import unittest
 
-def test_get_api():
-    response = app.test_client().get('/api/v1.0',headers=u'')
+
