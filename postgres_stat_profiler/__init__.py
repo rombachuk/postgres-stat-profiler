@@ -11,6 +11,7 @@ from postgres_stat_profiler.api_auth.api_request import api_request
 from postgres_stat_profiler.api_auth.api_keystore import api_keystore
 from postgres_stat_profiler.config.profilestore import profilestore
 from postgres_stat_profiler.supervision.profilesupervisor import profilesupervisor
+from postgres_stat_profiler.helpers.env_helper import fetch_env_allow_empty
 
 
 
@@ -76,12 +77,7 @@ def create_app():
   scheduler.start()
 
   # environment checks - fail to start if missing or not expandable
-  envprofilerbase = os.getenv(u'PG_STAT_PROFILER_BASE')
-  if not envprofilerbase:
-   print('pg-stat-profiler: Failed to find environment variable PG_STAT_PROFILER_BASE, using cwd')
-   installbase = os.getcwd()
-  else:
-   installbase = os.path.expandvars(envprofilerbase)
+  installbase = fetch_env_allow_empty(u'PG_STAT_PROFILER_BASE')
   secbase = os.path.join(installbase,u'postgres_stat_profiler/resources/sec')
   if not os.path.isdir(secbase):
    print('pg-stat-profiler: Failed to find security directory, exiting...')
@@ -89,12 +85,7 @@ def create_app():
    print('pg-stat-profiler: Please supply correct environment variable PG_STAT_PROFILER_BASE'.format(str(installbase)))
    sys.exit()
 
-  envlogbase = os.getenv(u'PG_STAT_PROFILER_LOGBASE')
-  if not envlogbase:
-   print('pg-stat-profiler: Failed to find environment variable PG_STAT_PROFILER_LOGBASE, using cwd')
-   logbase = os.getcwd()
-  else:
-   logbase = os.path.expandvars(envlogbase)
+  logbase = fetch_env_allow_empty(u'PG_STAT_PROFILER_LOGBASE')
   if not os.path.isdir(logbase):
    print('pg-stat-profiler: Failed to initiate logging, exiting...')
    print('pg-stat-profiler: Reason [Invalid Environment Variable PG_STAT_PROFILER_LOGBASE={}]'.format(str(logbase)))
@@ -176,19 +167,19 @@ def create_app():
 
   @app.errorhandler(404)
   def not_found(error):
-    return make_response(jsonify({'error': 'Not Found'}), 404)
+    return make_response(jsonify({"error": "Not Found"}), 404)
 
   @app.errorhandler(503)
   def not_supported(error):
-    return make_response(jsonify({'error': 'Not Supported'}), 503)
+    return make_response(jsonify({"error": "Not Supported"}), 503)
 
   @app.route('/_api/v1.0')
   @requires_api_auth
   def publish_welcome():
    try: 
-    return jsonify({'postgres-stat-profiler':'welcome','version': '1.0.0'}) 
+    return jsonify({"postgres-stat-profiler":"welcome","version": "1.0.0"}) 
    except Exception as e:
-      return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
+      return make_response(jsonify({"error": "API Processing Error ("+str(e)+")"}),500) 
 
   @app.route('/_api/v1.0/apikeys')
   @requires_secret_auth
@@ -197,9 +188,9 @@ def create_app():
     keys = []
     for i in range(0,5):
         keys.append(keystore.getApiKey(i))
-    return make_response(jsonify({'apikeys': '{}'.format(str(keys))}),200)
+    return make_response(jsonify({"apikeys": '{}'.format(str(keys))}),200)
    except Exception as e:
-      return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
+      return make_response(jsonify({"error": 'API Processing Error ('+str(e)+')'}),500) 
    
   @app.route('/_api/v1.0/profiles',methods=['GET'])
   @requires_api_auth
@@ -209,11 +200,11 @@ def create_app():
           details = []
           for p in profile_store.getProfiles():
             details.append(profile_store.getApiDetails(p))
-          return jsonify(details,200)
+          return make_response(jsonify({"result" : details}),200)
        else:
-         return make_response(jsonify({'error': 'Not Found'}), 404)
+         return make_response(jsonify({"error": "Not Found"}), 404)
    except Exception as e:
-      return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
+      return make_response(jsonify({"error": "API Processing Error ("+str(e)+")"}),500) 
 
   @app.route('/_api/v1.0/profiles/<name>',methods=['GET'])
   @requires_api_auth
@@ -222,21 +213,21 @@ def create_app():
     if profile_store.hasName(name):
        result = profile_store.getApiDetails(name)
        if 'name' in result:
-          return jsonify(result,200)
-    return make_response(jsonify({'error': 'Not Found'}), 404)
+          return make_response(jsonify({"result" : result}),200)
+    return make_response(jsonify({"error": "Not Found"}), 404)
    except Exception as e:
-      return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
+      return make_response(jsonify({"error": "API Processing Error ("+str(e)+")"}),500) 
 
   @app.route('/_api/v1.0/profiles/<name>',methods=['POST'])
   @requires_api_auth
   def create_profile(name):
    try:
     if profile_store.addProfileApi(name,request):
-        return jsonify({'result':'ok'},200) 
+        return  make_response(jsonify({"result":"ok"}),200) 
     else:
-        return jsonify({'result':'error'},200) 
+        return make_response(jsonify({"result":"error"}),200) 
    except Exception as e:
-      return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
+      return make_response(jsonify({"error": "API Processing Error ("+str(e)+")"}),500) 
    
   @app.route('/_api/v1.0/profiles/<name>/decryptQuery',methods=['POST'])
   @requires_api_auth
@@ -244,33 +235,33 @@ def create_app():
    try:
     status,query = profile_store.decryptProfileQuery(name,request)
     if status:
-        return jsonify({'result':'ok','decrypted_query':query},200) 
+        return  make_response(jsonify({"result":"ok","decrypted_query":query}),200) 
     else:
-        return jsonify({'result':'error'},200) 
+        return  make_response(jsonify({"result":"error"}),200) 
    except Exception as e:
-      return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
+      return make_response(jsonify({"error": "API Processing Error ("+str(e)+")"}),500) 
 
   @app.route('/_api/v1.0/profiles/<name>',methods=['PUT'])
   @requires_api_auth
   def update_profile(name):
    try: 
     if profile_store.updateProfileApi(name,request):
-        return jsonify({'result':'ok'},200) 
+        return  make_response(jsonify({"result":"ok"}),200) 
     else:
-        return jsonify({'result':'error'},200) 
+        return  make_response(jsonify({"result":"error"}),200) 
    except Exception as e:
-      return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
+      return make_response(jsonify({"error": "API Processing Error ("+str(e)+")"}),500) 
 
   @app.route('/_api/v1.0/profiles/<name>',methods=['DELETE'])
   @requires_api_auth
   def delete_profile(name):
    try: 
     if profile_store.deleteProfileApi(name):
-        return jsonify({'result':'ok'},200) 
+        return  make_response(jsonify({"result":"ok"}),200) 
     else:
-        return jsonify({'result':'error'},200) 
+        return  make_response(jsonify({"result":"error"}),200) 
    except Exception as e:
-      return make_response(jsonify({'error': 'API Processing Error ('+str(e)+')'}),500) 
+      return make_response(jsonify({"error": "API Processing Error ("+str(e)+")"}),500) 
   
 
   return app

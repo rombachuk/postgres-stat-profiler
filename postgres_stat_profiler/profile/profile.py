@@ -46,8 +46,8 @@ class profile:
   
   def _getAllDetails(self,monitoredconndetails,reportconndetails):
      try: 
-        return "{{ 'name' : '{}', 'status': '{}', 'queryencryption' : '{}', 'queryencryptionsecret' : '{}',\
-           'monitored_connection' : {{{}}}, 'monitordbstatus' : '{}', 'report_connection' : {{{}}}, 'reportdbstatus' : '{}' }}".\
+        return '{{ "name" : "{}", "status": "{}", "queryencryption" : "{}", "queryencryptionsecret" : "{}",\
+           "monitored_connection" : {{{}}}, "monitordbstatus" : "{}", "report_connection" : {{{}}}, "reportdbstatus" : "{}" }}'.\
              format(self.name, self.status,self.queryencryption,self.queryencryptionsecret,\
              monitoredconndetails, self.getMonitoredDBstatus(),\
              reportconndetails, self.getReportDBstatus())
@@ -61,8 +61,8 @@ class profile:
 
   def _getApiDetails(self,monitoredconndetails,reportconndetails):
      try: 
-        return "{{ 'name' : '{}', 'status': '{}', 'queryencryption' : '{}',\
-           'monitored_connection' : {{{}}}, 'monitordbstatus' : '{}', 'report_connection' : {{{}}}, 'reportdbstatus' : '{}' }}".\
+        return '{{ "name" : "{}", "status": "{}", "queryencryption" : "{}",\
+           "monitored_connection" : {{{}}}, "monitordbstatus": "{}", "report_connection" : {{{}}}, "reportdbstatus": "{}" }}'.\
              format(self.name, self.status,self.queryencryption,\
              monitoredconndetails, self.getMonitoredDBstatus(),\
              reportconndetails, self.getReportDBstatus())

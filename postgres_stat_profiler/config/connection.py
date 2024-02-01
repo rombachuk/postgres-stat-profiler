@@ -45,7 +45,7 @@ class connection:
     
     def getAllDetails(self):
         try: 
-          details = u"'database': '{}', 'host': '{}', 'port': {}, 'cacert': '{}', 'sslmode': '{}', 'credentials': '{}'".format\
+          details = u'"database": "{}", "host": "{}", "port": {}, "cacert": "{}", "sslmode": "{}", "credentials": "{}"'.format\
             (self.database,self.host,self.port,self.cacert,self.sslmode,self.credentials)
           return details
         except:
@@ -53,7 +53,7 @@ class connection:
     
     def getApiDetails(self):
         try: 
-          details = u"'database': '{}', 'host': '{}', 'port': {}, 'cacert': '{}' 'sslmode': '{}'".format\
+          details = u'"database": "{}", "host": "{}", "port": {}, "cacert": "{}", "sslmode": "{}"'.format\
             (self.database,self.host,self.port,self.cacert, self.sslmode)
           return details
         except:
