@@ -1,4 +1,4 @@
-import psycopg
+
 
 class incremental_statstatements:
 

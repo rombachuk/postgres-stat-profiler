@@ -72,11 +72,18 @@ class profile:
 
   def update(self,data):
      try:
+           errors = 0
            if data:
-             if 'status' in data and ((data['status'] == u'disabled') or (data['status'] == u'enabled')):
-               self.status = data['status']
-             if 'queryencryption' in data and ((data['queryencryption'] == u'disabled') or (data['queryencryption'] == u'enabled')):
-               self.queryencryption = data['queryencryption']
+             if 'status' in data:
+               if (data['status'] == u'disabled') or (data['status'] == u'enabled'):
+                  self.status = data['status']
+               else:
+                  errors = errors + 1
+             if 'queryencryption' in data:
+                if (data['queryencryption'] == u'disabled') or (data['queryencryption'] == u'enabled'):
+                  self.queryencryption = data['queryencryption']
+                else:
+                  errors = errors + 1
              if self.queryencryption == u'enabled' and 'queryencryptionsecret' in data:
                self.queryencryptionsecret = data['queryencryptionsecret']
              if 'report_connection' in data:
@@ -87,8 +94,11 @@ class profile:
                self.monitored_connection.update(data['monitored_connection'])  
              if 'monitordbstatus'in data:
                self.monitordbstatus = data['monitordbstatus']
-             self.valid = True
-           return True        
+             if errors > 0:
+                return False
+             else: 
+                self.valid = True
+                return True      
      except Exception as e:
         logging.warning('pg-stat-profiler : unexpected profile-update : [{}]'.format(str(e)))
         self.valid = False

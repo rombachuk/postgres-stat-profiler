@@ -67,8 +67,6 @@ def check_slavejobs(loggingjob,loggingqueue,logfilename,supervisorjob,profilesqu
 
 
    
-
-
 def create_app():
  
   app = Flask(__name__)
@@ -91,10 +89,16 @@ def create_app():
    print('pg-stat-profiler: Reason [Invalid Environment Variable PG_STAT_PROFILER_LOGBASE={}]'.format(str(logbase)))
    sys.exit()
 
-  api_secret = os.getenv(u'PG_STAT_PROFILER_SECRET')
-  if not api_secret:  
+  apiconfig_secret = os.getenv(u'PG_STAT_PROFILER_CONFIG_SECRET')
+  if not apiconfig_secret:  
       print("pg-stat-profiler: Failed to find secret, exiting...")
-      print("Failed to find environment variable PG_STAT_PROFILER_SECRET")
+      print("Failed to find environment variable PG_STAT_PROFILER_CONFIG_SECRET")
+      sys.exit()
+
+  apikeygen_secret = os.getenv(u'PG_STAT_PROFILER_APIKEYGEN_SECRET')
+  if not apikeygen_secret:  
+      print("pg-stat-profiler: Failed to find secret, exiting...")
+      print("Failed to find environment variable PG_STAT_PROFILER_APIKEYGEN_SECRET")
       sys.exit()
 
   try:
@@ -113,9 +117,9 @@ def create_app():
       try: 
          keystorefile = os.path.join(secbase,u'.pg-stat-profiler.keystr')
          profilesfile = os.path.join(secbase,u'.pg-stat-profiler.prof')
-         keystore = api_keystore(api_secret,keystorefile)
-         profile_store = profilestore(api_secret,profilesfile)
-         profile_supervisor = profilesupervisor(api_secret,profilesfile)
+         keystore = api_keystore(apiconfig_secret,keystorefile)
+         profile_store = profilestore(apiconfig_secret,profilesfile)
+         profile_supervisor = profilesupervisor(apiconfig_secret,profilesfile)
       except Exception as e:
          print('pg-stat-profiler: Failed to initiate data with secret, exiting... Reason [{}]'.format(str(e)))
          sys.exit()
@@ -138,7 +142,7 @@ def create_app():
   def fail_authenticate():
     return make_response(jsonify({'error': 'Not Authenticated'}), 401)
 
-  def requires_secret_auth(f):
+  def requires_keygensecret_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         request_auth = api_request(request)
@@ -146,7 +150,7 @@ def create_app():
             return fail_authenticate()  
         else:
             requestkey = str(request_auth.getRequestkey()).lower().strip()
-            if not api_secret == requestkey:
+            if not apikeygen_secret == requestkey:
                 return fail_authenticate()
         return f(*args, **kwargs)
     return decorated
@@ -181,10 +185,11 @@ def create_app():
    except Exception as e:
       return make_response(jsonify({"error": "API Processing Error ("+str(e)+")"}),500) 
 
-  @app.route('/_api/v1.0/apikeys')
-  @requires_secret_auth
+  @app.route('/_api/v1.0/apikeys',methods=['GET'])
+  @requires_keygensecret_auth
   def show_apikeys():
    try: 
+    keystore.resetKeys();
     keys = []
     for i in range(0,5):
         keys.append(keystore.getApiKey(i))

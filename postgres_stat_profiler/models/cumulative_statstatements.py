@@ -1,4 +1,4 @@
-import psycopg
+
 import logging
 from cryptography.fernet import Fernet
 

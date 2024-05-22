@@ -113,12 +113,12 @@ class profilestore:
         status = False
         try:
             if name in self.profiles:
-               self.profiles[name].update(data)
-               if name in self.profiles and self.profiles[name].getValid():
+               result = self.profiles[name].update(data)
+               if result == True and name in self.profiles and self.profiles[name].getValid():
                      status = self._updateProfilesFile()
             return status
         except Exception as e:
-            logging.warning('pg-stat-profiler : unexpected profile-add error : [{}]'.format(str(e)))
+            logging.warning('pg-stat-profiler : unexpected profile-update error : [{}]'.format(str(e)))
             return False
         
     # delete methods

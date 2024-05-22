@@ -1,0 +1,7 @@
+{
+    "queryencryption": "disabled",
+    "monitored_connection" : {"host" : "{YOUR_MONITORED_HOSTNAME}", "port" : 5432, "sslmode" : "verify-full", 
+    "cacert" : "{/path/to/monitored-service-cacertfile}", "credentials" : "{BASE64ENCODE USER:PASSWORD}", "database" : "{yourdb}"},
+    "report_connection": {"host" : "{YOUR_REPORT_HOSTNAME}", "port" : 5432,  "sslmode" : "verify-full", 
+    "cacert" : "{/path/to/report-service-cacertfile}", "credentials" : "{BASE64ENCODE USER:PASSWORD}", "database" : "{yourdb}"}
+}

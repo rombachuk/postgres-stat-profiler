@@ -1,0 +1,6 @@
+[pytest]  
+env =  
+    PG_STAT_PROFILER_CONFIG_SECRET={your config secret when testing}
+    PG_STAT_PROFILER_APIKEYGEN_SECRET={your apikeygen secret when testing}
+    PG_STAT_PROFILER_BASE={/path/to/your test installation dir}
+    PG_STAT_PROFILER_LOGBASE={/path/to/your test logging dir}
