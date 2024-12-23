@@ -1,7 +1,8 @@
-import pytest
+
 import os
 import json
 import logging
+import pytest
 from postgres_stat_profiler import create_app
 from postgres_stat_profiler.helpers.env_helper import fetch_env_allow_empty
 

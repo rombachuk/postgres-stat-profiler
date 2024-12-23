@@ -10,7 +10,7 @@ import multiprocessing
 from postgres_stat_profiler.api_auth.api_request import api_request
 from postgres_stat_profiler.api_auth.api_keystore import api_keystore
 from postgres_stat_profiler.config.profilestore import profilestore
-from postgres_stat_profiler.supervision.profilesupervisor import profilesupervisor
+from postgres_stat_profiler.collection.collectorsupervisor import collectorsupervisor
 from postgres_stat_profiler.helpers.env_helper import fetch_env_allow_empty
 
 
@@ -39,16 +39,16 @@ def log_listener(file, queue):
 
 # profile supervisor control function: runs periodically in parallel with Flask
 #
-def check_slavejobs(loggingjob,loggingqueue,logfilename,supervisorjob,profilesqueue,profile_supervisor,profile_store):
+def check_slavejobs(loggingjob,loggingqueue,logfilename,supervisorjob,profilesqueue,supervisor,profile_store):
   try:
    # 
    if not supervisorjob.is_alive():
       supervisorjob.join()
-      supervisorjob = multiprocessing.Process(target=profile_supervisor.run,args=(profilesqueue,loggingqueue))
+      supervisorjob = multiprocessing.Process(target=supervisor.run,args=(profilesqueue,loggingqueue))
       supervisorjob.start()
       logging.warning("pg-stat-profiler: supervisor restarted with processid :[{}]".format(str(supervisorjob.pid)))
    else:
-     #  handle profile state changes passed from individual profiles up via supervisor
+     #  handle profile state changes passed from individual collectors up via supervisor
      #  ensures that only this main thread updates the persistent profilesfilestore
      while not profilesqueue.empty(): 
         qdata = profilesqueue.get()
@@ -119,16 +119,16 @@ def create_app():
          profilesfile = os.path.join(secbase,u'.pg-stat-profiler.prof')
          keystore = api_keystore(apiconfig_secret,keystorefile)
          profile_store = profilestore(apiconfig_secret,profilesfile)
-         profile_supervisor = profilesupervisor(apiconfig_secret,profilesfile)
+         collection_supervisor = collectorsupervisor(apiconfig_secret,profilesfile)
       except Exception as e:
          print('pg-stat-profiler: Failed to initiate data with secret, exiting... Reason [{}]'.format(str(e)))
          sys.exit()
       
       profilesqueue = multiprocessing.Queue()
-      supervisorjob = multiprocessing.Process(target=profile_supervisor.run, args=(profilesqueue,loggingqueue))
+      supervisorjob = multiprocessing.Process(target=collection_supervisor.run, args=(profilesqueue,loggingqueue))
       supervisorjob.start()
       scheduler.add_job(id=u'periodic_supervisorcheck',func=check_slavejobs,
-            args=[loggingjob,loggingqueue,logfilename,supervisorjob,profilesqueue,profile_supervisor,profile_store],
+            args=[loggingjob,loggingqueue,logfilename,supervisorjob,profilesqueue,collection_supervisor,profile_store],
             trigger='interval', seconds=10)      
       app.debug = False
       logging.warning('pg-stat-profiler: api started')

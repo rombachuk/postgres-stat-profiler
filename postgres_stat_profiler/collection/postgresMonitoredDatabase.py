@@ -2,7 +2,7 @@ import os
 import logging
 import psycopg
 
-class monitoredDatabase():
+class postgresMonitoredDatabase():
 
     def __init__(self,connstring):
         self.connstring = connstring

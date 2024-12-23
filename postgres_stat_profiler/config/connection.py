@@ -7,10 +7,12 @@ class connection:
     def __init__(self,data):
         self.valid = False
         try:
-           if 'host' in data and \
+           if 'type' in data and \
+           'host' in data and \
            'port' in data and \
            'credentials' in data and \
            'database' in data:
+               self.type = data['type']
                self.host = data['host']
                self.port = data['port']                 
                self.credentials = data['credentials']
@@ -43,34 +45,42 @@ class connection:
     def getValid(self):
         return self.valid
     
+    def getType(self):
+        return self.type
+    
     def getAllDetails(self):
         try: 
-          details = u'"database": "{}", "host": "{}", "port": {}, "cacert": "{}", "sslmode": "{}", "credentials": "{}"'.format\
-            (self.database,self.host,self.port,self.cacert,self.sslmode,self.credentials)
+          details = u'"database": "{}", "type": "{}", "host": "{}", "port": {}, "cacert": "{}", "sslmode": "{}", "credentials": "{}"'.format\
+            (self.database,self.type,self.host,self.port,self.cacert,self.sslmode,self.credentials)
           return details
         except:
           return u'{ "error" : "connection details missing" }'
     
     def getApiDetails(self):
         try: 
-          details = u'"database": "{}", "host": "{}", "port": {}, "cacert": "{}", "sslmode": "{}"'.format\
-            (self.database,self.host,self.port,self.cacert, self.sslmode)
+          details = u'"database": "{}",  "type": "{}", "host": "{}", "port": {}, "cacert": "{}", "sslmode": "{}"'.format\
+            (self.database,self.type,self.host,self.port,self.cacert, self.sslmode)
           return details
         except:
           return u'{ "error" : "connection details missing" }'
         
-    def getConnectionString(self):
+    def getPostgresConnectionString(self):
      try:
-         return ' dbname = {} host = {} port = {} user = {} password = {} sslmode = {} sslrootcert = {}'.\
+         if self.type == u'postgresql':
+            return ' dbname = {} host = {} port = {} user = {} password = {} sslmode = {} sslrootcert = {}'.\
             format(self.database,self.host,self.port,self.username,self.password, self.sslmode, self.cacert)
+         else:
+            return ''
      except Exception as e:
-         logging.warning('pg-stat-profiler : unexpected profile-getConnectionString error : [{}]'.format(str(e)))
-         return u'{ "error" : "connection string configuration issue" }'
+         logging.warning('pg-stat-profiler : unexpected profile-getPostgresConnectionString error : [{}]'.format(str(e)))
+         return u'{ "error" : "postgres connection string configuration issue" }'
         
 
     def update(self,data):
        if 'database' in data:
           self.database = data['database']
+       if 'type' in data:
+          self.type = data['type']
        if 'host' in data:
           self.host = data['host']
        if 'port' in data:

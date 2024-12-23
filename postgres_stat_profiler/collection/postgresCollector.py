@@ -4,21 +4,20 @@ from cryptography.fernet import Fernet
 import psycopg
 from psycopg.rows import dict_row
 import logging
-from postgres_stat_profiler.collector.monitoredDatabase import monitoredDatabase
-from postgres_stat_profiler.collector.reportDatabase import reportDatabase
+from postgres_stat_profiler.collection.postgresMonitoredDatabase import postgresMonitoredDatabase
+from postgres_stat_profiler.collection.reportDatabase import reportDatabase
 from postgres_stat_profiler.models.cumulative_statstatements import cumulative_statstatements
 from postgres_stat_profiler.models.incremental_statstatements import incremental_statstatements
 
-class collector:
+class postgrescollector:
 
-    def __init__(self,name, queryenc, querysecret, monitorconn,reportconn):
-        self.profilename = name
-        self.queryencryption = queryenc
-        self.queryencryptionsecret = querysecret
-        self.monitor_connection = monitorconn
-        self.monitordb = monitoredDatabase(self.monitor_connection.getConnectionString())
-        self.report_connection =  reportconn
-        self.reportdb = reportDatabase(self.report_connection.getConnectionString())
+    def __init__(self, profile):
+        self.profile = profile
+        self.profilename = self.profile.getName()
+        self.queryencryption = self.profile.getQueryEncryption()
+        self.queryencryptionsecret = self.profile.getQueryEncryptionSecret()
+        self.monitordb = postgresMonitoredDatabase(self.profile.getMonitoredDBconnection().getPostgresConnectionString())
+        self.reportdb = reportDatabase(self.profile.getReportDBconnection().getPostgresConnectionString())
 
     def getMonitoredDBstatus(self):
         return self.monitordb.getStatus()
@@ -27,8 +26,6 @@ class collector:
         return self.reportdb.getStatus()
 
     def collect(self):
-        if self.monitordb.getStatus() == u'operational' \
-        and self.reportdb.getStatus() == u'initialised':
             try:
                now = datetime.now()
                rtime_minute = now.strftime('%Y-%m-%d %H:%M')
@@ -69,4 +66,4 @@ class collector:
                rconn.close()
 
             except Exception as e:
-               logging.warning('pg-stat-profiler: collector : collect error [{}]'.format(str(e)))
+               logging.warning('pg-stat-profiler: collection : postgres collect error [{}]'.format(str(e)))

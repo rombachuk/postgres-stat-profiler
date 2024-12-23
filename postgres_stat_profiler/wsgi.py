@@ -1,4 +1,6 @@
 from postgres_stat_profiler import create_app
+"""
+"""
 
 def main():
     app = create_app()

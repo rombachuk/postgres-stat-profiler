@@ -1,12 +1,6 @@
 import logging
 import logging.handlers
-import base64
-import time
-from flask import request
 from postgres_stat_profiler.config.connection import connection
-from postgres_stat_profiler.collector.reportDatabase import reportDatabase
-from postgres_stat_profiler.collector.monitoredDatabase import monitoredDatabase
-from postgres_stat_profiler.collector.collector import collector
 
 class profile:
   
@@ -35,9 +29,21 @@ class profile:
      
   def getReportDBstatus(self): 
       return self.reportdbstatus
+  
+  def getMonitoredDBconnection(self):
+      return self.monitored_connection
+     
+  def getReportDBconnection(self): 
+      return self.report_connection
      
   def getValid(self):
      return self.valid
+  
+  def getQueryEncryption(self):
+     return self.queryencryption
+  
+  def getQueryEncryptionSecret(self):
+     return self.queryencryptionsecret
   
   # Do not call this method from api handlers. exposes secrets.
   # Use only for storing config persistence into (encrypted) file. 
@@ -104,29 +110,7 @@ class profile:
         self.valid = False
         return False
      
-  def run(self, profilesqueue, loggingqueue):
-       try: 
-        h = logging.handlers.QueueHandler(loggingqueue) 
-        logger = logging.getLogger()
-        logger.addHandler(h)
-        logging.warn('pg_stat_profiler: profile data collector [{}] started'.format(self.name))
-        sleep_interval = 60.0
-        starttime = time.monotonic()
-        while True:
-           
-           coll = collector(self.name,self.queryencryption,self.queryencryptionsecret,self.monitored_connection,self.report_connection)
-           # report status to parent processes to allow api read of status      
-           self.reportdbstatus = coll.getReportDBstatus()
-           self.monitordbstatus = coll.getMonitoredDBstatus()
-           # pass result back via queue to grandparent main process - which updates the (persistent, encrypted) profilesfile
-           result = {"name": self.name, "reportdbstatus": self.reportdbstatus, "monitordbstatus": self.monitordbstatus }
-           profilesqueue.put(result)
-           coll.collect()
-           time.sleep(sleep_interval - ((time.monotonic() - starttime) % sleep_interval))
-           
-       except Exception as e:
-        logging.warning('pg-stat-profiler : unexpected profile-run error : [{}]'.format(str(e)))
-     
+  
   def _setConnections(self,data):
      try:
            if data and 'report_connection' in data and 'monitored_connection' in data:
